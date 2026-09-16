@@ -14,6 +14,11 @@ import {
   Database,
   Shield,
   Store,
+  Building2,
+  Smartphone,
+  Receipt,
+  ArrowLeftRight,
+  Clock,
 } from 'lucide-react';
 
 interface NavItem {
@@ -42,9 +47,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, activeKey
     { key: 'customers', labelKey: 'customers', icon: <Users size={20} />, active: activeKey === 'customers' || activeKey.startsWith('customer') },
     { key: 'purchases', labelKey: 'purchases', icon: <Truck size={20} />, active: activeKey === 'purchases' || activeKey.startsWith('purchase') },
     { key: 'suppliers', labelKey: 'suppliers', icon: <Truck size={20} />, active: activeKey === 'suppliers' || activeKey.startsWith('supplier') },
+    { key: 'finance', labelKey: 'finance', icon: <Wallet size={20} />, active: activeKey === 'finance' },
+    { key: 'cash-accounts', labelKey: 'cash-accounts', icon: <Wallet size={20} />, active: activeKey === 'cash-accounts' },
+    { key: 'bank-accounts', labelKey: 'bank-accounts', icon: <Building2 size={20} />, active: activeKey === 'bank-accounts' },
+    { key: 'mfs-accounts', labelKey: 'mfs-accounts', icon: <Smartphone size={20} />, active: activeKey === 'mfs-accounts' },
+    { key: 'expenses', labelKey: 'expenses', icon: <Receipt size={20} />, active: activeKey === 'expenses' },
+    { key: 'transfers', labelKey: 'transfers', icon: <ArrowLeftRight size={20} />, active: activeKey === 'transfers' },
+    { key: 'shifts', labelKey: 'shifts', icon: <Clock size={20} />, active: activeKey === 'shifts' },
     { key: 'products', labelKey: 'products', icon: <Package size={20} />, disabled: true, comingSoon: true },
     { key: 'inventory', labelKey: 'inventory', icon: <Database size={20} />, disabled: true, comingSoon: true },
-    { key: 'expenses', labelKey: 'expenses', icon: <Wallet size={20} />, disabled: true, comingSoon: true },
     { key: 'reports', labelKey: 'reports', icon: <BarChart3 size={20} />, disabled: true, comingSoon: true },
     { key: 'hardware', labelKey: 'hardware', icon: <Printer size={20} />, disabled: true, comingSoon: true },
     { key: 'users', labelKey: 'users', icon: <Shield size={20} />, disabled: true, comingSoon: true },

@@ -247,10 +247,11 @@ export class Migrator {
       );
     `;
 
-    // Try to load Phase 2/3A/3B migration files for full schema if exists
+    // Try to load Phase 2/3A/3B/3D migration files for full schema if exists
     let phase2Sql = '';
     let phase3aSql = '';
     let phase3bSql = '';
+    let phase3dSql = '';
     const possiblePaths = [
       path.join(__dirname, 'migrations', '0002_phase2_full_schema.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0002_phase2_full_schema.sql'),
@@ -262,6 +263,10 @@ export class Migrator {
     const possiblePaths3b = [
       path.join(__dirname, 'migrations', '0004_phase3b_sales_customer.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0004_phase3b_sales_customer.sql'),
+    ];
+    const possiblePaths3d = [
+      path.join(__dirname, 'migrations', '0005_phase3d_finance.sql'),
+      path.join(process.cwd(), 'src/main/db/migrations/0005_phase3d_finance.sql'),
     ];
 
     for (const p of possiblePaths) {
@@ -284,6 +289,14 @@ export class Migrator {
       if (fs.existsSync(p)) {
         phase3bSql = fs.readFileSync(p, 'utf-8');
         logger.info(`Loaded Phase 3B schema from ${p}`);
+        break;
+      }
+    }
+
+    for (const p of possiblePaths3d) {
+      if (fs.existsSync(p)) {
+        phase3dSql = fs.readFileSync(p, 'utf-8');
+        logger.info(`Loaded Phase 3D schema from ${p}`);
         break;
       }
     }
@@ -523,13 +536,31 @@ export class Migrator {
           logger.warn(`Phase 3B migration partial: ${String(e)}`);
         }
       }
-      // Record that phase2, phase3a, phase3b migrations are applied for new DBs
+      if (phase3dSql) {
+        try {
+          const statements = phase3dSql.split(';').map(s => s.trim()).filter(s => s.length > 0);
+          for (const stmt of statements) {
+            try {
+              this.db.exec(stmt);
+            } catch (e) {
+              const msg = String(e);
+              if (!msg.includes('duplicate column') && !msg.includes('already exists')) {
+                logger.warn(`Phase 3D statement failed: ${msg} | ${stmt.slice(0,100)}`);
+              }
+            }
+          }
+        } catch (e) {
+          logger.warn(`Phase 3D migration partial: ${String(e)}`);
+        }
+      }
+      // Record that phase2, phase3a, phase3b, phase3d migrations are applied for new DBs
       try {
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0002_phase2_full_schema', Date.now());
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0003_phase3a_purchasing', Date.now());
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0004_phase3b_sales_customer', Date.now());
+        this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0005_phase3d_finance', Date.now());
       } catch {}
-      logger.info('Initial schema created (Phase 1 + Phase 2 + Phase 3A + Phase 3B)');
+      logger.info('Initial schema created (Phase 1 + Phase 2 + Phase 3A + Phase 3B + Phase 3D)');
       return { success: true };
     } catch (e) {
       logger.error('Failed to create initial schema', e);

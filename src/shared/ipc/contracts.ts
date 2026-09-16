@@ -87,10 +87,62 @@ export const IPC_CHANNELS = {
   SALE_RETURN_CREATE: 'sale:returnCreate',
   SALE_RETURN_LIST: 'sale:returnList',
 
-  // Finance
+  // Finance - Cash
   CASH_ACCOUNT_LIST: 'finance:cashAccountList',
+  CASH_ACCOUNT_CREATE: 'finance:cashAccountCreate',
+  CASH_ACCOUNT_GET: 'finance:cashAccountGet',
+  CASH_ACCOUNT_UPDATE: 'finance:cashAccountUpdate',
+  CASH_ACCOUNT_DEACTIVATE: 'finance:cashAccountDeactivate',
+  CASH_ACCOUNT_STATEMENT: 'finance:cashAccountStatement',
+  CASH_ACCOUNT_BALANCE: 'finance:cashAccountBalance',
+  CASH_MOVEMENT_LIST: 'finance:cashMovementList',
+  CASH_TRANSFER_CREATE: 'finance:cashTransferCreate',
+  CASH_TRANSFER_LIST: 'finance:cashTransferList',
+
+  // Finance - Bank
   BANK_ACCOUNT_LIST: 'finance:bankAccountList',
+  BANK_ACCOUNT_CREATE: 'finance:bankAccountCreate',
+  BANK_ACCOUNT_GET: 'finance:bankAccountGet',
+  BANK_ACCOUNT_UPDATE: 'finance:bankAccountUpdate',
+  BANK_ACCOUNT_DEACTIVATE: 'finance:bankAccountDeactivate',
+  BANK_ACCOUNT_STATEMENT: 'finance:bankAccountStatement',
+  BANK_ACCOUNT_BALANCE: 'finance:bankAccountBalance',
+  BANK_TRANSACTION_LIST: 'finance:bankTransactionList',
+
+  // Finance - MFS
   MFS_ACCOUNT_LIST: 'finance:mfsAccountList',
+  MFS_ACCOUNT_CREATE: 'finance:mfsAccountCreate',
+  MFS_ACCOUNT_GET: 'finance:mfsAccountGet',
+  MFS_ACCOUNT_UPDATE: 'finance:mfsAccountUpdate',
+  MFS_ACCOUNT_DEACTIVATE: 'finance:mfsAccountDeactivate',
+  MFS_ACCOUNT_STATEMENT: 'finance:mfsAccountStatement',
+  MFS_ACCOUNT_BALANCE: 'finance:mfsAccountBalance',
+  MFS_PROVIDER_LIST: 'finance:mfsProviderList',
+  MFS_TRANSACTION_LIST: 'finance:mfsTransactionList',
+  MFS_CASH_IN: 'finance:mfsCashIn',
+  MFS_CASH_OUT: 'finance:mfsCashOut',
+
+  // Finance - Expenses
+  EXPENSE_CATEGORY_LIST: 'finance:expenseCategoryList',
+  EXPENSE_CREATE: 'finance:expenseCreate',
+  EXPENSE_LIST: 'finance:expenseList',
+  EXPENSE_GET: 'finance:expenseGet',
+  EXPENSE_VOID: 'finance:expenseVoid',
+
+  // Finance - Transfers
+  FINANCE_TRANSFER_LIST: 'finance:transferList',
+
+  // Finance - Dashboard & Reconciliation
+  FINANCE_DASHBOARD: 'finance:dashboard',
+  FINANCE_RECONCILE: 'finance:reconcile',
+
+  // Finance - Shifts
+  SHIFT_OPEN: 'finance:shiftOpen',
+  SHIFT_LIST: 'finance:shiftList',
+  SHIFT_GET: 'finance:shiftGet',
+  SHIFT_CURRENT: 'finance:shiftCurrent',
+  SHIFT_CLOSE: 'finance:shiftClose',
+  SHIFT_RECONCILIATION: 'finance:shiftReconciliation',
 
   // POS
   POS_PRODUCT_BY_BARCODE: 'pos:productByBarcode',

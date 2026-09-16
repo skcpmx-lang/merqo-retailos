@@ -12,9 +12,16 @@ import { SaleList } from './screens/sales/SaleList';
 import { SaleForm } from './screens/sales/SaleForm';
 import { SaleDetail } from './screens/sales/SaleDetail';
 import { POSScreen } from './screens/pos/POSScreen';
+import { FinanceOverview } from './screens/finance/FinanceOverview';
+import { CashAccountsScreen } from './screens/finance/CashAccountsScreen';
+import { BankAccountsScreen } from './screens/finance/BankAccountsScreen';
+import { MfsAccountsScreen } from './screens/finance/MfsAccountsScreen';
+import { ExpensesScreen } from './screens/finance/ExpensesScreen';
+import { TransfersScreen } from './screens/finance/TransfersScreen';
+import { ShiftsScreen } from './screens/finance/ShiftsScreen';
 import './lib/i18n';
 
-type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail' | 'pos';
+type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail' | 'pos' | 'finance' | 'cash-accounts' | 'bank-accounts' | 'mfs-accounts' | 'expenses' | 'transfers' | 'shifts';
 
 export const App: React.FC = () => {
   const [ready, setReady] = useState(false);
@@ -76,7 +83,7 @@ export const App: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-body text-text-secondary">অ্যাপ লোড হচ্ছে...</p>
-          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3C POS</p>
+          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3D Finance</p>
         </div>
       </div>
     );
@@ -166,6 +173,20 @@ export const App: React.FC = () => {
         );
       case 'pos':
         return <POSScreen businessId={businessId} />;
+      case 'finance':
+        return <FinanceOverview businessId={businessId} />;
+      case 'cash-accounts':
+        return <CashAccountsScreen businessId={businessId} />;
+      case 'bank-accounts':
+        return <BankAccountsScreen businessId={businessId} />;
+      case 'mfs-accounts':
+        return <MfsAccountsScreen businessId={businessId} />;
+      case 'expenses':
+        return <ExpensesScreen businessId={businessId} />;
+      case 'transfers':
+        return <TransfersScreen businessId={businessId} />;
+      case 'shifts':
+        return <ShiftsScreen businessId={businessId} />;
       default:
         return <Dashboard />;
     }

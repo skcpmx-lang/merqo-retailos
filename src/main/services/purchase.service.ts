@@ -9,6 +9,7 @@ import { ProductRepository } from '../db/repositories/product.repository';
 import { UnitRepository, UnitConversionRepository } from '../db/repositories/unit.repository';
 import { StockLevelRepository, StockMovementRepository } from '../db/repositories/inventory.repository';
 import { ProductCostHistoryRepository } from '../db/repositories/product.repository';
+import { CashAccountRepository, CashMovementRepository, BankTransactionRepository, MfsTransactionRepository } from '../db/repositories/finance.repository';
 import { PurchaseValidationService } from '@core/domain/services/purchase-validation.service';
 import { UnitConversionService } from '@core/domain/services/unit-conversion.service';
 import { InventoryDomainService } from '@core/domain/services/inventory.service';
@@ -431,6 +432,7 @@ export class PurchaseService {
 
   /**
    * Supplier payment (without purchase link — advance or due payment)
+   * Now also creates financial movement (cash/bank/mfs) atomically
    */
   paySupplier(input: {
     businessId: string;
@@ -451,6 +453,10 @@ export class PurchaseService {
 
     const db = (this.purchaseRepo as any).db;
     const transaction = db.transaction(() => {
+      const cashMovementRepo = new CashMovementRepository(db);
+      const bankTxRepo = new BankTransactionRepository(db);
+      const mfsTxRepo = new MfsTransactionRepository(db);
+
       const paymentNumber = this.purchasePaymentRepo.getNextPaymentNumber(input.businessId);
 
       const payment = this.purchasePaymentRepo.create({
@@ -484,6 +490,52 @@ export class PurchaseService {
       const newPayable = this.supplierTxRepo.getCurrentPayable(input.supplierId);
       this.supplierRepo.update(input.supplierId, { currentPayablePaisa: newPayable } as any);
 
+      // Financial movements — supplier payment is outflow
+      const methodLower = input.method.toLowerCase();
+      if (methodLower === 'cash') {
+        const cashAccountId = input.cashAccountId || this.getDefaultCashAccountId(db, input.businessId);
+        if (cashAccountId) {
+          cashMovementRepo.create({
+            businessId: input.businessId,
+            cashAccountId,
+            movementType: 'supplier_payment',
+            amountPaisa: -input.amountPaisa,
+            referenceType: 'supplier_payment',
+            referenceId: payment.id,
+            notes: input.notes || `সাপ্লায়ার পরিশোধ: ${supplier.name}`,
+            createdBy: input.createdBy,
+          });
+        }
+      } else if (['bank', 'card', 'cheque'].includes(methodLower)) {
+        if (input.bankAccountId) {
+          bankTxRepo.create({
+            businessId: input.businessId,
+            bankAccountId: input.bankAccountId,
+            transactionType: 'supplier_payment',
+            amountPaisa: -input.amountPaisa,
+            referenceType: 'supplier_payment',
+            referenceId: payment.id,
+            chequeNumber: input.chequeNumber || null,
+            notes: input.notes || `সাপ্লায়ার পরিশোধ: ${supplier.name}`,
+            createdBy: input.createdBy,
+          });
+        }
+      } else if (['bkash', 'nagad', 'rocket', 'upay', 'mfs'].includes(methodLower)) {
+        if (input.mfsAccountId) {
+          mfsTxRepo.create({
+            businessId: input.businessId,
+            mfsAccountId: input.mfsAccountId,
+            transactionType: 'supplier_payment',
+            amountPaisa: input.amountPaisa,
+            customerChargePaisa: 0,
+            commissionPaisa: 0,
+            netAmountPaisa: -input.amountPaisa,
+            notes: input.notes || `সাপ্লায়ার পরিশোধ: ${supplier.name}`,
+            createdBy: input.createdBy,
+          } as any);
+        }
+      }
+
       this.auditService.log({
         businessId: input.businessId,
         userId: input.createdBy || null,
@@ -497,6 +549,15 @@ export class PurchaseService {
     });
 
     return transaction();
+  }
+
+  private getDefaultCashAccountId(db: any, businessId: string): string | null {
+    try {
+      const row = db.prepare('SELECT id FROM cash_accounts WHERE business_id = ? AND is_active = 1 ORDER BY is_default DESC LIMIT 1').get(businessId) as { id: string } | undefined;
+      return row?.id || null;
+    } catch {
+      return null;
+    }
   }
 
   /**
