@@ -172,18 +172,15 @@ export class ShiftService {
       const calc = this.calculateExpected(input.shiftId);
       const expected = calc.expected;
 
-      const closed = this.shiftRepo.close(input.shiftId, expected, input.actualCashPaisa, input.closedByUserId, input.notes);
-
-      // If variance material, record adjustment? For V1, we just audit variance, not auto-adjust
-      if (Math.abs(expected - input.actualCashPaisa) > 0) {
-        // Variance recorded in shift variance_paisa, reason required if material
-        const variance = input.actualCashPaisa - expected;
-        if (Math.abs(variance) > 10000) { // >100 BDT material
-          if (!input.notes || input.notes.trim().length === 0) {
-            throw new Error('বড় ঘাটতি/অতিরিক্তের জন্য কারণ লিখতে হবে');
-          }
+      // Validate material variance requires notes BEFORE closing
+      const variance = input.actualCashPaisa - expected;
+      if (Math.abs(variance) > 10000) { // >100 BDT material
+        if (!input.notes || input.notes.trim().length === 0) {
+          throw new Error('বড় ঘাটতি/অতিরিক্তের জন্য কারণ লিখতে হবে');
         }
       }
+
+      const closed = this.shiftRepo.close(input.shiftId, expected, input.actualCashPaisa, input.closedByUserId, input.notes);
 
       this.auditService.log({
         businessId: shift.businessId,
@@ -191,7 +188,7 @@ export class ShiftService {
         action: 'close',
         entityType: 'shift',
         entityId: shift.id,
-        newValues: JSON.stringify({ expected, actual: input.actualCashPaisa, variance: input.actualCashPaisa - expected }),
+        newValues: JSON.stringify({ expected, actual: input.actualCashPaisa, variance }),
       });
 
       return closed;

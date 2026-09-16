@@ -56,7 +56,7 @@ export class HeldSaleRepository extends BaseRepository {
   }
 
   findByBusiness(businessId: string, limit = 50): HeldSale[] {
-    const rows = this.db.prepare('SELECT * FROM held_sales WHERE business_id = ? ORDER BY created_at DESC LIMIT ?').all(businessId, limit) as any[];
+    const rows = this.db.prepare('SELECT * FROM held_sales WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT ?').all(businessId, limit) as any[];
     return rows.map(r => this.mapRow(r));
   }
 
