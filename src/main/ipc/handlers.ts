@@ -506,6 +506,226 @@ export function registerIpcHandlers() {
     return repo.findByBusiness(businessId);
   });
 
+  // Customers
+  createHandler(IPC_CHANNELS.CUSTOMER_CREATE, async (_event, payload: any) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.permissions.includes('customer.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'গ্রাহক তৈরির অনুমতি নেই', statusCode: 403 });
+    }
+    return service.create({ ...payload, createdBy: currentUser?.userId });
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_UPDATE, async (_event, payload: { id: string; data: any }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.permissions.includes('customer.update') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'অনুমতি নেই', statusCode: 403 });
+    }
+    return service.update(payload.id, { ...payload.data, updatedBy: currentUser?.userId });
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_GET, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    return service.findById(payload.id);
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_LIST, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.findByBusiness(businessId);
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_SEARCH, async (_event, payload: { businessId: string; query: string; includeInactive?: boolean }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return service.search(businessId, payload.query || '', payload.includeInactive);
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_DEACTIVATE, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.permissions.includes('customer.deactivate') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'অনুমতি নেই', statusCode: 403 });
+    }
+    service.deactivate(payload.id, currentUser?.userId);
+    return { success: true };
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_ACTIVATE, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'অনুমতি নেই', statusCode: 403 });
+    }
+    service.activate(payload.id, currentUser?.userId);
+    return { success: true };
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_DELETE, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'অনুমতি নেই', statusCode: 403 });
+    }
+    service.delete(payload.id, currentUser?.userId);
+    return { success: true };
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_STATEMENT, async (_event, payload: { customerId: string; fromDate?: number; toDate?: number }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.permissions.includes('customer.statement') && !currentUser.permissions.includes('sales.view') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'গ্রাহক আর্থিক তথ্য দেখার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.getStatement(payload.customerId, payload.fromDate, payload.toDate);
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_TRANSACTIONS, async (_event, payload: { customerId: string; limit?: number }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    return service.getTransactionHistory(payload.customerId, payload.limit);
+  });
+
+  createHandler(IPC_CHANNELS.CUSTOMER_COLLECT, async (_event, payload: any) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CustomerService } = require('../services/customer.service');
+    const service = new CustomerService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('customers.manage') && !currentUser.permissions.includes('customer.collect') && !currentUser.permissions.includes('sales.payment') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'বকেয়া আদায়ের অনুমতি নেই', statusCode: 403 });
+    }
+    return service.collectDue({ ...payload, createdBy: currentUser?.userId });
+  });
+
+  // Sales
+  createHandler(IPC_CHANNELS.SALE_CREATE, async (_event, payload: any) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleService } = require('../services/sale.service');
+    const service = new SaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.create') && !currentUser.permissions.includes('pos.sell') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'বিক্রয় তৈরির অনুমতি নেই', statusCode: 403 });
+    }
+    return service.create({ ...payload, businessId: payload.businessId || currentUser?.businessId, createdBy: currentUser?.userId });
+  });
+
+  createHandler(IPC_CHANNELS.SALE_GET, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleService } = require('../services/sale.service');
+    const service = new SaleService(db);
+    return service.findById(payload.id);
+  });
+
+  createHandler(IPC_CHANNELS.SALE_LIST, async (_event, payload: { businessId: string; filters?: any; limit?: number; offset?: number }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleService } = require('../services/sale.service');
+    const service = new SaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return service.findByBusiness(businessId, payload.filters, payload.limit, payload.offset);
+  });
+
+  createHandler(IPC_CHANNELS.SALE_CANCEL, async (_event, payload: { id: string; reason: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleService } = require('../services/sale.service');
+    const service = new SaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.cancel') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'বাতিলের অনুমতি নেই', statusCode: 403 });
+    }
+    service.cancel(payload.id, payload.reason, currentUser?.userId);
+    return { success: true };
+  });
+
+  createHandler(IPC_CHANNELS.SALE_RETURN_CREATE, async (_event, payload: any) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleService } = require('../services/sale.service');
+    const service = new SaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.return') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'ফেরতের অনুমতি নেই', statusCode: 403 });
+    }
+    return service.createReturn({ ...payload, createdBy: currentUser?.userId });
+  });
+
+  createHandler(IPC_CHANNELS.SALE_RETURN_LIST, async (_event, payload: { saleId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { SaleReturnRepository } = require('../db/repositories/sale.repository');
+    const repo = new SaleReturnRepository(db);
+    return repo.findBySale(payload.saleId);
+  });
+
+  // Finance accounts
+  createHandler(IPC_CHANNELS.CASH_ACCOUNT_LIST, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { CashAccountRepository } = require('../db/repositories/finance.repository');
+    const repo = new CashAccountRepository(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return repo.findByBusiness(businessId);
+  });
+
+  createHandler(IPC_CHANNELS.BANK_ACCOUNT_LIST, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { BankAccountRepository } = require('../db/repositories/finance.repository');
+    const repo = new BankAccountRepository(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return repo.findByBusiness(businessId);
+  });
+
+  createHandler(IPC_CHANNELS.MFS_ACCOUNT_LIST, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { MfsAccountRepository } = require('../db/repositories/finance.repository');
+    const repo = new MfsAccountRepository(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return repo.findByBusiness(businessId);
+  });
+
   // Hardware placeholders (future)
   createHandler(IPC_CHANNELS.HARDWARE_GET_PRINTERS, async () => {
     return { printers: [], message: 'Not implemented in Phase 1' };

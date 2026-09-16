@@ -66,6 +66,32 @@ export const IPC_CHANNELS = {
   UNIT_LIST: 'unit:list',
   UNIT_CONVERSIONS: 'unit:conversions',
 
+  // Customers
+  CUSTOMER_CREATE: 'customer:create',
+  CUSTOMER_UPDATE: 'customer:update',
+  CUSTOMER_GET: 'customer:get',
+  CUSTOMER_LIST: 'customer:list',
+  CUSTOMER_SEARCH: 'customer:search',
+  CUSTOMER_DEACTIVATE: 'customer:deactivate',
+  CUSTOMER_ACTIVATE: 'customer:activate',
+  CUSTOMER_DELETE: 'customer:delete',
+  CUSTOMER_STATEMENT: 'customer:statement',
+  CUSTOMER_TRANSACTIONS: 'customer:transactions',
+  CUSTOMER_COLLECT: 'customer:collect',
+
+  // Sales
+  SALE_CREATE: 'sale:create',
+  SALE_GET: 'sale:get',
+  SALE_LIST: 'sale:list',
+  SALE_CANCEL: 'sale:cancel',
+  SALE_RETURN_CREATE: 'sale:returnCreate',
+  SALE_RETURN_LIST: 'sale:returnList',
+
+  // Finance
+  CASH_ACCOUNT_LIST: 'finance:cashAccountList',
+  BANK_ACCOUNT_LIST: 'finance:bankAccountList',
+  MFS_ACCOUNT_LIST: 'finance:mfsAccountList',
+
   // Backup (future)
   BACKUP_CREATE: 'backup:create',
   BACKUP_LIST: 'backup:list',

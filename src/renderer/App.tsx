@@ -6,9 +6,14 @@ import { SupplierDetail } from './screens/purchasing/SupplierDetail';
 import { PurchaseList } from './screens/purchasing/PurchaseList';
 import { PurchaseForm } from './screens/purchasing/PurchaseForm';
 import { PurchaseDetail } from './screens/purchasing/PurchaseDetail';
+import { CustomerList } from './screens/customers/CustomerList';
+import { CustomerDetail } from './screens/customers/CustomerDetail';
+import { SaleList } from './screens/sales/SaleList';
+import { SaleForm } from './screens/sales/SaleForm';
+import { SaleDetail } from './screens/sales/SaleDetail';
 import './lib/i18n';
 
-type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail';
+type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail';
 
 export const App: React.FC = () => {
   const [ready, setReady] = useState(false);
@@ -17,6 +22,8 @@ export const App: React.FC = () => {
   const [businessId, setBusinessId] = useState<string>('');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('');
   const [selectedPurchaseId, setSelectedPurchaseId] = useState<string>('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [selectedSaleId, setSelectedSaleId] = useState<string>('');
 
   useEffect(() => {
     async function init() {
@@ -30,16 +37,10 @@ export const App: React.FC = () => {
           throw new Error(dbStatus.error?.message || 'DB failed');
         }
 
-        // Get business id
         const bizRes = await window.merqo.business.get();
         if (bizRes.success && bizRes.data) {
           setBusinessId(bizRes.data.id);
         } else {
-          // Fallback: try to get from DB directly via first business
-          // For now, use a placeholder that will be overridden by first business in list
-          // We'll fetch business list via suppliers? Actually need business
-          // Let's try to query businesses table via a temporary IPC? For now, set empty and UI will handle
-          // In real app, first-run will create business
           setBusinessId('default-biz');
         }
 
@@ -74,7 +75,7 @@ export const App: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-body text-text-secondary">অ্যাপ লোড হচ্ছে...</p>
-          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3A Purchasing</p>
+          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3B Sales & Customer</p>
         </div>
       </div>
     );
@@ -121,6 +122,46 @@ export const App: React.FC = () => {
       case 'purchase-detail':
         return (
           <PurchaseDetail purchaseId={selectedPurchaseId} businessId={businessId} onBack={() => setActiveKey('purchases')} />
+        );
+      case 'customers':
+        return (
+          <CustomerList
+            businessId={businessId}
+            onSelectCustomer={id => {
+              setSelectedCustomerId(id);
+              setActiveKey('customer-detail');
+            }}
+          />
+        );
+      case 'customer-detail':
+        return (
+          <CustomerDetail customerId={selectedCustomerId} businessId={businessId} onBack={() => setActiveKey('customers')} />
+        );
+      case 'sales':
+        return (
+          <SaleList
+            businessId={businessId}
+            onSelect={id => {
+              setSelectedSaleId(id);
+              setActiveKey('sale-detail');
+            }}
+            onCreate={() => setActiveKey('sale-form')}
+          />
+        );
+      case 'sale-form':
+        return (
+          <SaleForm
+            businessId={businessId}
+            onBack={() => setActiveKey('sales')}
+            onSuccess={id => {
+              setSelectedSaleId(id);
+              setActiveKey('sale-detail');
+            }}
+          />
+        );
+      case 'sale-detail':
+        return (
+          <SaleDetail saleId={selectedSaleId} businessId={businessId} onBack={() => setActiveKey('sales')} />
         );
       default:
         return <Dashboard />;

@@ -92,6 +92,38 @@ const merqoAPI = {
     conversions: (businessId: string) => invoke('unit:conversions', { businessId }),
   },
 
+  // Customers
+  customer: {
+    create: (payload: any) => invoke('customer:create', payload),
+    update: (payload: { id: string; data: any }) => invoke('customer:update', payload),
+    get: (id: string) => invoke('customer:get', { id }),
+    list: (businessId: string) => invoke('customer:list', { businessId }),
+    search: (payload: { businessId: string; query: string; includeInactive?: boolean }) => invoke('customer:search', payload),
+    deactivate: (id: string) => invoke('customer:deactivate', { id }),
+    activate: (id: string) => invoke('customer:activate', { id }),
+    delete: (id: string) => invoke('customer:delete', { id }),
+    statement: (payload: { customerId: string; fromDate?: number; toDate?: number }) => invoke('customer:statement', payload),
+    transactions: (payload: { customerId: string; limit?: number }) => invoke('customer:transactions', payload),
+    collect: (payload: any) => invoke('customer:collect', payload),
+  },
+
+  // Sales
+  sale: {
+    create: (payload: any) => invoke('sale:create', payload),
+    get: (id: string) => invoke('sale:get', { id }),
+    list: (payload: { businessId: string; filters?: any; limit?: number; offset?: number }) => invoke('sale:list', payload),
+    cancel: (payload: { id: string; reason: string }) => invoke('sale:cancel', payload),
+    returnCreate: (payload: any) => invoke('sale:returnCreate', payload),
+    returnList: (saleId: string) => invoke('sale:returnList', { saleId }),
+  },
+
+  // Finance
+  finance: {
+    cashAccounts: (businessId: string) => invoke('finance:cashAccountList', { businessId }),
+    bankAccounts: (businessId: string) => invoke('finance:bankAccountList', { businessId }),
+    mfsAccounts: (businessId: string) => invoke('finance:mfsAccountList', { businessId }),
+  },
+
   // Hardware (future, but expose now for diagnostics)
   hardware: {
     getPrinters: () => invoke('hardware:getPrinters'),

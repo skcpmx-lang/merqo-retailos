@@ -93,7 +93,7 @@ export class InventoryDomainService {
     if (currentStockMilli < deductMilli) {
       return {
         allowed: false,
-        reason: `অপর্যাপ্ত স্টক: বর্তমান ${currentStockMilli / 1000}, প্রয়োজন ${deductMilli / 1000}`,
+        reason: `এই পণ্যের পর্যাপ্ত স্টক নেই। বর্তমান ${currentStockMilli / 1000}, প্রয়োজন ${deductMilli / 1000}`,
       };
     }
 

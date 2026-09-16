@@ -10,7 +10,7 @@ import { PurchaseService } from '../../services/purchase.service';
 
 describe('Supplier & Purchase Integration', () => {
   let db: any;
-  let businessId = 'biz_phase3a';
+  const businessId = 'biz_phase3a';
   let supplierRepo: SupplierRepository;
   let supplierTxRepo: SupplierTransactionRepository;
   let productRepo: ProductRepository;

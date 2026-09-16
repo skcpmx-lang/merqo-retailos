@@ -7,4 +7,5 @@ export * from './inventory.repository';
 export * from './supplier.repository';
 export * from './purchase.repository';
 export * from './customer.repository';
+export * from './sale.repository';
 export * from './finance.repository';
