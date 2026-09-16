@@ -45,21 +45,44 @@ export class Migrator {
   }
 
   getPendingMigrations(): Migration[] {
-    if (!fs.existsSync(this.migrationsPath)) {
-      return [];
+    // Check multiple possible migration locations for production
+    const possibleDirs = [
+      this.migrationsPath,
+      path.join(__dirname, 'migrations'),
+      path.join(process.cwd(), 'src/main/db/migrations'),
+      path.join(process.cwd(), 'dist/main/db/migrations'),
+    ];
+    try {
+      const electron = require('electron');
+      if ((process as any).resourcesPath) {
+        possibleDirs.push(path.join((process as any).resourcesPath, 'migrations'));
+      }
+    } catch {}
+
+    let migrationFiles: string[] = [];
+    let actualPath = '';
+    for (const dir of possibleDirs) {
+      if (fs.existsSync(dir)) {
+        const files = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort();
+        if (files.length > 0) {
+          migrationFiles = files;
+          actualPath = dir;
+          break;
+        }
+      }
     }
 
-    const files = fs.readdirSync(this.migrationsPath)
-      .filter(f => f.endsWith('.sql'))
-      .sort();
+    if (migrationFiles.length === 0) {
+      return [];
+    }
 
     const executed = this.getExecutedMigrations();
     const pending: Migration[] = [];
 
-    for (const file of files) {
+    for (const file of migrationFiles) {
       const name = path.basename(file, '.sql');
       if (!executed.includes(name)) {
-        const filePath = path.join(this.migrationsPath, file);
+        const filePath = path.join(actualPath, file);
         const sql = fs.readFileSync(filePath, 'utf-8');
         pending.push({ name, sql });
       }
@@ -252,21 +275,45 @@ export class Migrator {
     let phase3aSql = '';
     let phase3bSql = '';
     let phase3dSql = '';
+    // Production paths: dist/main/db/migrations (copy:migrations), extraResources migrations (resourcesPath), and dev src
+    let resourcesPath = '';
+    try {
+      const electron = require('electron');
+      if (electron.app) {
+        resourcesPath = path.join((electron.app as any).getAppPath(), '..'); // fallback
+        // In packaged app, extraResources are in process.resourcesPath
+        if ((process as any).resourcesPath) {
+          resourcesPath = (process as any).resourcesPath;
+        }
+      }
+    } catch {}
     const possiblePaths = [
       path.join(__dirname, 'migrations', '0002_phase2_full_schema.sql'),
+      path.join(__dirname, '../../main/db/migrations/0002_phase2_full_schema.sql'),
+      path.join(resourcesPath, 'migrations', '0002_phase2_full_schema.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0002_phase2_full_schema.sql'),
+      path.join(process.cwd(), 'dist/main/db/migrations/0002_phase2_full_schema.sql'),
     ];
     const possiblePaths3a = [
       path.join(__dirname, 'migrations', '0003_phase3a_purchasing.sql'),
+      path.join(__dirname, '../../main/db/migrations/0003_phase3a_purchasing.sql'),
+      path.join(resourcesPath, 'migrations', '0003_phase3a_purchasing.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0003_phase3a_purchasing.sql'),
+      path.join(process.cwd(), 'dist/main/db/migrations/0003_phase3a_purchasing.sql'),
     ];
     const possiblePaths3b = [
       path.join(__dirname, 'migrations', '0004_phase3b_sales_customer.sql'),
+      path.join(__dirname, '../../main/db/migrations/0004_phase3b_sales_customer.sql'),
+      path.join(resourcesPath, 'migrations', '0004_phase3b_sales_customer.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0004_phase3b_sales_customer.sql'),
+      path.join(process.cwd(), 'dist/main/db/migrations/0004_phase3b_sales_customer.sql'),
     ];
     const possiblePaths3d = [
       path.join(__dirname, 'migrations', '0005_phase3d_finance.sql'),
+      path.join(__dirname, '../../main/db/migrations/0005_phase3d_finance.sql'),
+      path.join(resourcesPath, 'migrations', '0005_phase3d_finance.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0005_phase3d_finance.sql'),
+      path.join(process.cwd(), 'dist/main/db/migrations/0005_phase3d_finance.sql'),
     ];
 
     for (const p of possiblePaths) {

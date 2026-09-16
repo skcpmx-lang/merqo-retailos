@@ -175,10 +175,16 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
-  logger.info('App starting...', { version: app.getVersion(), isPackaged: app.isPackaged });
+  // Initialize config first to get paths
+  const configManager = getConfigManager();
+  const appConfig = configManager.getAppConfig();
 
-  // Initialize config
-  getConfigManager();
+  // Set log file path — Windows per-user location, safe if fails
+  try {
+    logger.setLogFilePath(appConfig.logsPath);
+  } catch {}
+
+  logger.info('App starting...', { version: app.getVersion(), isPackaged: app.isPackaged, userDataPath: appConfig.userDataPath, dbPath: appConfig.dbPath });
 
   // Initialize hashing
   await HashingService.init();

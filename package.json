@@ -86,12 +86,28 @@
     },
     "files": [
       "dist/**/*",
-      "package.json"
+      "package.json",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/bindings/**/*",
+      "node_modules/file-uri-to-path/**/*"
     ],
+    "asar": true,
+    "asarUnpack": [
+      "**/node_modules/better-sqlite3/**/*",
+      "**/*.node"
+    ],
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
     "win": {
-      "target": "nsis",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
       "icon": "resources/icons/icon.ico",
-      "artifactName": "MERQO-RetailOS-${version}-${arch}.${ext}"
+      "artifactName": "MERQO-RetailOS-${version}-${arch}.${ext}",
+      "publisherName": "MERQO"
     },
     "nsis": {
       "oneClick": false,
@@ -100,14 +116,25 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "MERQO RetailOS",
-      "artifactName": "MERQO-RetailOS-Setup-${version}.${ext}"
+      "artifactName": "MERQO-RetailOS-Setup-${version}.${ext}",
+      "uninstallDisplayName": "MERQO RetailOS",
+      "include": "resources/installer.nsh",
+      "deleteAppDataOnUninstall": false
     },
     "extraResources": [
       {
         "from": "resources/fonts",
         "to": "fonts",
         "filter": ["**/*"]
+      },
+      {
+        "from": "dist/main/db/migrations",
+        "to": "migrations",
+        "filter": ["**/*.sql"]
       }
-    ]
+    ],
+    "extraMetadata": {
+      "main": "dist/main/index.js"
+    }
   }
 }
