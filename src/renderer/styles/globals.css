@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-canvas text-text-primary text-body antialiased;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-100 border-border-focus;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-canvas;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-strong;
+  }
+}
+
+@layer components {
+  /* Button base */
+  .btn {
+    @apply inline-flex items-center justify-center rounded-sm font-medium text-body transition-colors duration-150 ease-out;
+    @apply focus-visible:ring-2 focus-visible:ring-primary-100;
+    @apply disabled:opacity-50 disabled:pointer-events-none;
+    height: var(--size-button-default);
+    padding: 0 16px;
+  }
+
+  .btn-primary {
+    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-surface border border-border text-text-primary hover:bg-subtle;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-text-secondary hover:bg-subtle hover:text-text-primary;
+  }
+
+  .btn-danger {
+    @apply bg-danger-500 text-white hover:bg-danger-600;
+  }
+
+  .btn-sm {
+    height: var(--size-button-sm);
+    @apply text-body-sm px-3;
+  }
+
+  .btn-lg {
+    height: var(--size-button-lg);
+    @apply px-6;
+  }
+
+  /* Input */
+  .input {
+    @apply w-full rounded-sm border border-border bg-surface px-3 text-body text-text-primary;
+    @apply placeholder:text-text-tertiary;
+    @apply focus:border-border-focus focus:ring-2 focus:ring-primary-100;
+    @apply disabled:bg-muted disabled:text-text-disabled;
+    height: var(--size-input);
+  }
+
+  .input-error {
+    @apply border-danger-500 focus:border-danger-500 focus:ring-danger-50;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-surface border border-border rounded shadow-xs p-4;
+  }
+
+  /* Table */
+  .table-header {
+    @apply bg-subtle text-text-tertiary text-body-sm font-medium;
+  }
+
+  .table-row {
+    @apply border-b border-border hover:bg-subtle transition-colors;
+    height: var(--size-table-row);
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center p-8 text-center;
+  }
+}
+
+/* Utility for no overflow */
+.no-overflow {
+  overflow: hidden;
+}
+
+/* Ensure app fills window */
+#root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

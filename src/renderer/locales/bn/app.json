@@ -1,0 +1,22 @@
+{
+  "title": "MERQO RetailOS",
+  "subtitle": "আপনার খুচরা ব্যবসার সম্পূর্ণ সমাধান",
+  "welcome": "স্বাগতম",
+  "description": "সুপার শপ, গ্রোসারি, মিনি মার্ট এবং জেনারেল স্টোরের জন্য বাণিজ্যিক মানের ব্যবস্থাপনা সিস্টেম",
+  "support": "সাপোর্ট: merqoonline@gmail.com",
+  "version": "ভার্সন",
+  "loadingApp": "অ্যাপ লোড হচ্ছে...",
+  "initializingDb": "ডাটাবেস চালু হচ্ছে...",
+  "checkingIntegrity": "ডাটাবেস পরীক্ষা করা হচ্ছে...",
+  "firstLaunchDetected": "প্রথমবার চালু করা হয়েছে। সেটআপ প্রয়োজন।",
+  "setupRequired": "সেটআপ প্রয়োজন",
+  "dashboardComingSoon": "ড্যাশবোর্ড শীঘ্রই আসছে",
+  "posComingSoon": "পিওএস শীঘ্রই আসছে",
+  "productsComingSoon": "পণ্য ব্যবস্থাপনা শীঘ্রই আসছে",
+  "foundationReady": "ফাউন্ডেশন প্রস্তুত",
+  "foundationDesc": "Phase 1 ফাউন্ডেশন সফলভাবে সম্পন্ন হয়েছে। ডাটাবেস, নিরাপত্তা, লগিং, এবং অ্যাপ শেল প্রস্তুত।",
+  "performanceBaseline": "পারফরম্যান্স বেসলাইন",
+  "startupTime": "স্টার্টআপ সময়",
+  "dbInitTime": "ডাটাবেস চালু সময়",
+  "rendererTime": "রেন্ডারার সময়"
+}

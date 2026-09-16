@@ -1,0 +1,112 @@
+{
+  "name": "merqo-retailos",
+  "version": "0.1.0",
+  "description": "MERQO RetailOS - Commercial-grade retail management system for Windows",
+  "author": "MERQO <merqoonline@gmail.com>",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "npm run build:main && electron .",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "vite build",
+    "build:preload": "tsc -p tsconfig.preload.json",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:db": "vitest run --config vitest.db.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.preload.json",
+    "typecheck:renderer": "tsc --noEmit -p tsconfig.json",
+    "typecheck:main": "tsc --noEmit -p tsconfig.main.json",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win --x64",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.1.1",
+    "drizzle-orm": "^0.33.0",
+    "nanoid": "^5.0.7",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.2",
+    "@tanstack/react-query": "^5.51.1",
+    "i18next": "^23.11.5",
+    "react-i18next": "^14.1.2",
+    "lucide-react": "^0.400.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.3.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.14.9",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "drizzle-kit": "^0.24.0",
+    "electron": "^30.3.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.1",
+    "@typescript-eslint/parser": "^7.13.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "postcss": "^8.4.39",
+    "prettier": "^3.3.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.3",
+    "vite": "^5.3.3",
+    "vitest": "^1.6.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.6",
+    "jsdom": "^24.1.0"
+  },
+  "build": {
+    "appId": "com.merqo.retailos",
+    "productName": "MERQO RetailOS",
+    "copyright": "Copyright © 2026 MERQO",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "resources/icons/icon.ico",
+      "artifactName": "MERQO-RetailOS-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MERQO RetailOS",
+      "artifactName": "MERQO-RetailOS-Setup-${version}.${ext}"
+    },
+    "extraResources": [
+      {
+        "from": "resources/fonts",
+        "to": "fonts",
+        "filter": ["**/*"]
+      }
+    ]
+  }
+}
