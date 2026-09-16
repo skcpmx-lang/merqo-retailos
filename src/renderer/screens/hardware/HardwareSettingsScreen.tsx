@@ -155,7 +155,7 @@ export const HardwareSettingsScreen: React.FC = () => {
     <div className="space-y-6 max-w-6xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-h2 font-bold text-text-primary flex items-center gap-2">
+          <h1 className="text-h3 font-semibold tracking-tight font-bold text-text-primary flex items-center gap-2">
             <Wrench size={20} className="text-primary-500" />
             হার্ডওয়্যার সেটিংস
           </h1>

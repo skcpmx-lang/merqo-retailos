@@ -11,6 +11,8 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "kern" 1, "liga" 1;
   }
 
   body {
@@ -18,14 +20,27 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
+    line-height: 1.5;
   }
 
-  /* Focus visible */
+  /* Focus visible — premium, accessible */
   :focus-visible {
-    @apply outline-none ring-2 ring-primary-100 border-border-focus;
+    @apply outline-none;
+    box-shadow: var(--focus-ring);
+    border-color: var(--color-border-focus);
   }
 
-  /* Scrollbar */
+  /* Focus for buttons/inputs — consistent */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none;
+    box-shadow: var(--shadow-focus);
+  }
+
+  /* Scrollbar — desktop-native, subtle */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -37,37 +52,65 @@
 
   ::-webkit-scrollbar-thumb {
     @apply bg-muted rounded-full;
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-border-strong;
   }
+
+  /* Selection */
+  ::selection {
+    background: var(--color-primary-100);
+    color: var(--color-primary-700);
+  }
+
+  /* Print */
+  @media print {
+    body {
+      overflow: visible !important;
+      background: white !important;
+    }
+    #root {
+      overflow: visible !important;
+      height: auto !important;
+    }
+    aside, header, footer {
+      display: none !important;
+    }
+    main {
+      overflow: visible !important;
+      padding: 0 !important;
+    }
+  }
 }
 
 @layer components {
-  /* Button base */
+  /* Button base — premium, desktop-native */
   .btn {
     @apply inline-flex items-center justify-center rounded-sm font-medium text-body transition-colors duration-150 ease-out;
-    @apply focus-visible:ring-2 focus-visible:ring-primary-100;
-    @apply disabled:opacity-50 disabled:pointer-events-none;
+    @apply focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none select-none;
     height: var(--size-button-default);
     padding: 0 16px;
+    line-height: 1;
+    letter-spacing: -0.01em;
   }
 
   .btn-primary {
-    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700;
+    @apply bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700 shadow-xs;
   }
 
   .btn-secondary {
-    @apply bg-surface border border-border text-text-primary hover:bg-subtle;
+    @apply bg-surface border border-border text-text-primary hover:bg-subtle active:bg-muted shadow-xs;
   }
 
   .btn-ghost {
-    @apply bg-transparent text-text-secondary hover:bg-subtle hover:text-text-primary;
+    @apply bg-transparent text-text-secondary hover:bg-subtle hover:text-text-primary active:bg-muted;
   }
 
   .btn-danger {
-    @apply bg-danger-500 text-white hover:bg-danger-600;
+    @apply bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-600 shadow-xs;
   }
 
   .btn-sm {
@@ -77,40 +120,95 @@
 
   .btn-lg {
     height: var(--size-button-lg);
-    @apply px-6;
+    @apply px-6 text-body;
   }
 
-  /* Input */
+  /* Input — accessible, Bengali-friendly */
   .input {
     @apply w-full rounded-sm border border-border bg-surface px-3 text-body text-text-primary;
-    @apply placeholder:text-text-tertiary;
-    @apply focus:border-border-focus focus:ring-2 focus:ring-primary-100;
-    @apply disabled:bg-muted disabled:text-text-disabled;
+    @apply placeholder:text-text-tertiary transition-colors duration-150;
+    @apply focus:border-border-focus focus:outline-none;
+    @apply disabled:bg-muted disabled:text-text-disabled disabled:cursor-not-allowed;
     height: var(--size-input);
+    line-height: 1.2;
+  }
+
+  .input:focus {
+    box-shadow: var(--shadow-focus);
+  }
+
+  .input-sm {
+    height: var(--size-input-sm);
+    @apply text-body-sm px-2.5;
   }
 
   .input-error {
-    @apply border-danger-500 focus:border-danger-500 focus:ring-danger-50;
+    @apply border-danger-500 focus:border-danger-500;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
   }
 
-  /* Card */
+  /* Card — minimal, not decorative */
   .card {
-    @apply bg-surface border border-border rounded shadow-xs p-4;
+    @apply bg-surface border border-border rounded shadow-xs;
   }
 
-  /* Table */
+  .card-hover {
+    @apply hover:shadow-sm transition-shadow duration-150;
+  }
+
+  /* Table — retail-focused, dense */
   .table-header {
     @apply bg-subtle text-text-tertiary text-body-sm font-medium;
   }
 
   .table-row {
-    @apply border-b border-border hover:bg-subtle transition-colors;
+    @apply border-b border-border hover:bg-subtle/60 transition-colors duration-100;
     height: var(--size-table-row);
+  }
+
+  .table-row-compact {
+    height: var(--size-table-row-compact);
+    @apply border-b border-border hover:bg-subtle/50 transition-colors;
   }
 
   /* Empty state */
   .empty-state {
     @apply flex flex-col items-center justify-center p-8 text-center;
+  }
+
+  /* Skeleton */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded-sm;
+  }
+
+  /* Focus ring utility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100 focus-visible:border-border-focus;
+  }
+
+  /* Truncate with tooltip */
+  .truncate-tooltip {
+    @apply truncate;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Numeric alignment */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* Bengali text */
+  .text-bn {
+    font-family: "Noto Sans Bengali", "Hind Siliguri", sans-serif;
+    line-height: 1.6;
+  }
+
+  /* Currency */
+  .text-currency {
+    @apply tabular-nums font-mono font-medium;
   }
 }
 
@@ -119,11 +217,42 @@
   overflow: hidden;
 }
 
-/* Ensure app fills window */
+/* Ensure app fills window — minimum 1280x720 */
 #root {
   width: 100vw;
   height: 100vh;
+  min-width: 1280px;
+  min-height: 720px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* Responsive breakpoints — desktop only, no mobile */
+@media (max-width: 1279px) {
+  #root {
+    min-width: 100vw;
+    overflow-x: auto;
+  }
+}
+
+/* High DPI — 4K */
+@media (min-width: 2560px) {
+  html {
+    font-size: 15px;
+  }
+}
+
+@media (min-width: 3840px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+/* Reduce motion for POS speed */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

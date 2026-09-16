@@ -1,125 +1,141 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { usePurchases } from '../../hooks/usePurchases';
 import { useSuppliers } from '../../hooks/useSuppliers';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { Card, CardContent, CardHeader } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { Search, Plus, Eye, XCircle } from 'lucide-react';
-
-function formatPaisa(paisa: number): string {
-  return `৳ ${(paisa / 100).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString('bn-BD', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'default' | 'danger'> = {
-  paid: 'success',
-  partially_paid: 'warning',
-  received: 'default',
-  draft: 'default',
-  cancelled: 'danger',
-};
-const STATUS_LABEL: Record<string, string> = {
-  paid: 'পরিশোধিত',
-  partially_paid: 'আংশিক',
-  received: 'গ্রহণ',
-  draft: 'খসড়া',
-  cancelled: 'বাতিল',
-};
+import { Card, CardContent } from '../../components/ui/Card';
+import { StatusBadge } from '../../components/ui/Badge';
+import { EmptyState, TableLoadingState, TableErrorState } from '../../components/ui/States';
+import { Search, Plus, Eye, ShoppingBag } from 'lucide-react';
+import { formatBDTEn, formatDate } from '../../lib/format';
 
 export const PurchaseList: React.FC<{ businessId: string; onSelect: (id: string) => void; onCreate: () => void }> = ({ businessId, onSelect, onCreate }) => {
   const [filters, setFilters] = useState<{ supplierId?: string; status?: string; search?: string; fromDate?: number; toDate?: number }>({});
   const [searchInput, setSearchInput] = useState('');
 
-  const { data: purchases, isLoading } = usePurchases(businessId, filters, 100, 0);
+  const { data: purchases, isLoading, error, refetch } = usePurchases(businessId, filters, 100, 0);
   const { data: suppliers } = useSuppliers(businessId);
 
-  const supplierMap = React.useMemo(() => {
+  const supplierMap = useMemo(() => {
     const m: Record<string, string> = {};
     (suppliers || []).forEach((s: any) => (m[s.id] = s.name));
     return m;
   }, [suppliers]);
 
-  const handleSearch = () => {
-    setFilters({ ...filters, search: searchInput });
-  };
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-h1 text-text-primary">ক্রয় তালিকা</h1>
-          <p className="text-body-sm text-text-secondary mt-1">ক্রয় আদেশ ও পেমেন্ট ট্র্যাকিং</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-h3 font-semibold tracking-tight">ক্রয়</h1>
+          <p className="text-body-sm text-text-secondary mt-0.5">ক্রয় তালিকা ও পাওনা ব্যবস্থাপনা</p>
         </div>
-        <Button onClick={onCreate}><Plus size={16} className="mr-2" /> নতুন ক্রয়</Button>
+        <Button onClick={onCreate} className="shrink-0">
+          <Plus size={14} className="mr-1.5" /> নতুন ক্রয়
+        </Button>
       </div>
 
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-wrap items-end gap-3">
+        <CardContent className="p-0">
+          <div className="flex flex-wrap items-end gap-3 p-3 border-b border-border">
             <div className="flex-1 min-w-[200px]">
-              <label className="text-caption text-text-tertiary block mb-1">খুঁজুন</label>
-              <div className="flex gap-2">
+              <label className="text-caption font-medium text-text-secondary block mb-1">খুঁজুন</label>
+              <div className="flex gap-1.5">
                 <div className="relative flex-1">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
-                  <Input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="ক্রয় নম্বর..." className="pl-9" onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-tertiary" />
+                  <input value={searchInput} onChange={e => setSearchInput(e.target.value)} placeholder="ক্রয় নম্বর..." className="w-full h-8 pl-8 pr-2 rounded-sm border border-border bg-surface text-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100 placeholder:text-text-tertiary" onKeyDown={e => e.key === 'Enter' && setFilters({ ...filters, search: searchInput })} />
                 </div>
-                <Button variant="secondary" size="sm" onClick={handleSearch}>খুঁজুন</Button>
+                <Button variant="secondary" size="sm" onClick={() => setFilters({ ...filters, search: searchInput })} className="h-8 shrink-0">
+                  খুঁজুন
+                </Button>
               </div>
             </div>
             <div>
-              <label className="text-caption text-text-tertiary block mb-1">সাপ্লায়ার</label>
-              <select value={filters.supplierId || ''} onChange={e => setFilters({ ...filters, supplierId: e.target.value || undefined })} className="h-9 px-3 rounded-sm border border-border bg-surface text-body-sm min-w-[160px]">
-                <option value="">সব সাপ্লায়ার</option>
-                {(suppliers || []).map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              <label className="text-caption font-medium text-text-secondary block mb-1">সরবরাহকারী</label>
+              <select value={filters.supplierId || ''} onChange={e => setFilters({ ...filters, supplierId: e.target.value || undefined })} className="h-8 px-2.5 rounded-sm border border-border bg-surface text-body-sm min-w-[140px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100">
+                <option value="">সব সরবরাহকারী</option>
+                {(suppliers || []).map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
-              <label className="text-caption text-text-tertiary block mb-1">অবস্থা</label>
-              <select value={filters.status || ''} onChange={e => setFilters({ ...filters, status: e.target.value || undefined })} className="h-9 px-3 rounded-sm border border-border bg-surface text-body-sm">
+              <label className="text-caption font-medium text-text-secondary block mb-1">অবস্থা</label>
+              <select value={filters.status || ''} onChange={e => setFilters({ ...filters, status: e.target.value || undefined })} className="h-8 px-2.5 rounded-sm border border-border bg-surface text-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100">
                 <option value="">সব</option>
-                <option value="received">গ্রহণ</option>
+                <option value="received">গৃহীত</option>
                 <option value="partially_paid">আংশিক</option>
                 <option value="paid">পরিশোধিত</option>
                 <option value="cancelled">বাতিল</option>
               </select>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => { setFilters({}); setSearchInput(''); }}>রিসেট</Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setFilters({});
+                setSearchInput('');
+              }}
+              className="h-8"
+            >
+              রিসেট
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
+
           <div className="overflow-auto">
             <table className="w-full">
-              <thead className="bg-subtle border-y border-border">
+              <thead className="bg-subtle border-b border-border sticky top-0 z-10">
                 <tr>
                   <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5">ক্রয় নম্বর</th>
-                  <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5">সাপ্লায়ার</th>
-                  <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5">তারিখ</th>
+                  <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5">সরবরাহকারী</th>
+                  <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5 hidden lg:table-cell">তারিখ</th>
                   <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5">মোট</th>
-                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5">পরিশোধ</th>
-                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5">বকেয়া</th>
+                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5 hidden md:table-cell">পরিশোধ</th>
+                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5">বাকি</th>
                   <th className="text-left text-caption font-medium text-text-tertiary px-4 py-2.5">অবস্থা</th>
-                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5">অ্যাকশন</th>
+                  <th className="text-right text-caption font-medium text-text-tertiary px-4 py-2.5 w-20"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-border">
                 {isLoading ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center"><div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-0">
+                      <TableLoadingState />
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td colSpan={8} className="p-0">
+                      <TableErrorState message={String(error)} onRetry={() => refetch()} />
+                    </td>
+                  </tr>
                 ) : !purchases?.length ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-body-sm text-text-tertiary">কোন ক্রয় নেই</td></tr>
+                  <tr>
+                    <td colSpan={8} className="p-0">
+                      <EmptyState icon={ShoppingBag} title="কোনো ক্রয় নেই" description="এই সময়সীমায় কোনো তথ্য পাওয়া যায়নি।" actionLabel="নতুন ক্রয়" onAction={onCreate} />
+                    </td>
+                  </tr>
                 ) : (
                   purchases.map((p: any) => (
-                    <tr key={p.id} className="border-b border-border hover:bg-subtle/50">
-                      <td className="px-4 py-3 text-body-sm font-mono font-medium">{p.purchaseNumber}</td>
-                      <td className="px-4 py-3 text-body-sm">{supplierMap[p.supplierId] || p.supplierId.slice(0, 8)}</td>
-                      <td className="px-4 py-3 text-body-sm">{formatDate(p.purchaseDate)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-body-sm">{formatPaisa(p.totalPaisa)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-body-sm text-success-600">{formatPaisa(p.paidPaisa)}</td>
-                      <td className="px-4 py-3 text-right font-mono text-body-sm font-medium"><span className={p.duePaisa > 0 ? 'text-danger-600' : ''}>{formatPaisa(p.duePaisa)}</span></td>
-                      <td className="px-4 py-3"><Badge variant={STATUS_VARIANT[p.status] || 'default'}>{STATUS_LABEL[p.status] || p.status}</Badge></td>
-                      <td className="px-4 py-3 text-right"><Button variant="ghost" size="sm" onClick={() => onSelect(p.id)}><Eye size={14} className="mr-1" /> দেখুন</Button></td>
+                    <tr key={p.id} className="hover:bg-subtle/50 transition-colors">
+                      <td className="px-4 py-3 text-body-sm font-mono font-medium tabular-nums">{p.purchaseNumber}</td>
+                      <td className="px-4 py-3 text-body-sm truncate max-w-[160px]" title={supplierMap[p.supplierId]}>
+                        {supplierMap[p.supplierId] || <span className="font-mono text-caption">{p.supplierId.slice(0, 8)}</span>}
+                      </td>
+                      <td className="px-4 py-3 text-body-sm hidden lg:table-cell tabular-nums">{formatDate(p.purchaseDate)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-body-sm font-medium">{formatBDTEn(p.totalPaisa)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-body-sm text-success-600 hidden md:table-cell">{formatBDTEn(p.paidPaisa)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-body-sm font-medium">
+                        <span className={p.duePaisa > 0 ? 'text-danger-600' : ''}>{formatBDTEn(p.duePaisa)}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button onClick={() => onSelect(p.id)} className="inline-flex items-center gap-1 h-7 px-2.5 rounded-sm border border-border bg-surface hover:bg-subtle text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-100" aria-label={`দেখুন ${p.purchaseNumber}`}>
+                          <Eye size={12} /> দেখুন
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}

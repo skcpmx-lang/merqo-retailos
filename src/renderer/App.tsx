@@ -39,41 +39,28 @@ export const App: React.FC = () => {
   useEffect(() => {
     async function init() {
       try {
-        if (!window.merqo) {
-          throw new Error('Preload bridge not available');
-        }
-
+        if (!window.merqo) throw new Error('Preload bridge not available');
         const dbStatus = await window.merqo.db.getStatus();
-        if (!dbStatus.success) {
-          throw new Error(dbStatus.error?.message || 'DB failed');
-        }
-
+        if (!dbStatus.success) throw new Error(dbStatus.error?.message || 'DB failed');
         const bizRes = await window.merqo.business.get();
-        if (bizRes.success && bizRes.data) {
-          setBusinessId(bizRes.data.id);
-        } else {
-          setBusinessId('default-biz');
-        }
-
+        if (bizRes.success && bizRes.data) setBusinessId(bizRes.data.id);
+        else setBusinessId('default-biz');
         setReady(true);
       } catch (e) {
         setError(String(e));
       }
     }
-
     init();
   }, []);
 
-  const navigate = (key: string) => {
-    setActiveKey(key as Screen);
-  };
+  const navigate = (key: string) => setActiveKey(key as Screen);
 
   if (error) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-canvas">
-        <div className="card max-w-md p-6 text-center">
-          <h2 className="text-h2 text-danger-600">ত্রুটি</h2>
-          <p className="text-body-sm text-text-secondary mt-2">{error}</p>
+        <div className="border border-danger-200 bg-danger-50 rounded-sm max-w-md p-6 text-center">
+          <h2 className="text-h3 font-semibold text-danger-700">ত্রুটি</h2>
+          <p className="text-body-sm text-text-secondary mt-2 leading-relaxed">{error}</p>
           <p className="text-caption text-text-tertiary mt-4">সাপোর্ট: merqoonline@gmail.com</p>
         </div>
       </div>
@@ -83,10 +70,12 @@ export const App: React.FC = () => {
   if (!ready) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-canvas">
-        <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-body text-text-secondary">অ্যাপ লোড হচ্ছে...</p>
-          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3D Finance</p>
+          <div className="text-center">
+            <p className="text-body font-medium text-text-primary">MERQO RetailOS লোড হচ্ছে...</p>
+            <p className="text-caption text-text-tertiary mt-1">P4.5 UI/UX Polish • Light Only • Offline-first</p>
+          </div>
         </div>
       </div>
     );
@@ -95,85 +84,25 @@ export const App: React.FC = () => {
   const renderScreen = () => {
     switch (activeKey) {
       case 'suppliers':
-        return (
-          <SupplierList
-            businessId={businessId}
-            onSelectSupplier={id => {
-              setSelectedSupplierId(id);
-              setActiveKey('supplier-detail');
-            }}
-          />
-        );
+        return <SupplierList businessId={businessId} onSelectSupplier={id => { setSelectedSupplierId(id); setActiveKey('supplier-detail'); }} />;
       case 'supplier-detail':
-        return (
-          <SupplierDetail supplierId={selectedSupplierId} businessId={businessId} onBack={() => setActiveKey('suppliers')} />
-        );
+        return <SupplierDetail supplierId={selectedSupplierId} businessId={businessId} onBack={() => setActiveKey('suppliers')} />;
       case 'purchases':
-        return (
-          <PurchaseList
-            businessId={businessId}
-            onSelect={id => {
-              setSelectedPurchaseId(id);
-              setActiveKey('purchase-detail');
-            }}
-            onCreate={() => setActiveKey('purchase-form')}
-          />
-        );
+        return <PurchaseList businessId={businessId} onSelect={id => { setSelectedPurchaseId(id); setActiveKey('purchase-detail'); }} onCreate={() => setActiveKey('purchase-form')} />;
       case 'purchase-form':
-        return (
-          <PurchaseForm
-            businessId={businessId}
-            onBack={() => setActiveKey('purchases')}
-            onSuccess={id => {
-              setSelectedPurchaseId(id);
-              setActiveKey('purchase-detail');
-            }}
-          />
-        );
+        return <PurchaseForm businessId={businessId} onBack={() => setActiveKey('purchases')} onSuccess={id => { setSelectedPurchaseId(id); setActiveKey('purchase-detail'); }} />;
       case 'purchase-detail':
-        return (
-          <PurchaseDetail purchaseId={selectedPurchaseId} businessId={businessId} onBack={() => setActiveKey('purchases')} />
-        );
+        return <PurchaseDetail purchaseId={selectedPurchaseId} businessId={businessId} onBack={() => setActiveKey('purchases')} />;
       case 'customers':
-        return (
-          <CustomerList
-            businessId={businessId}
-            onSelectCustomer={id => {
-              setSelectedCustomerId(id);
-              setActiveKey('customer-detail');
-            }}
-          />
-        );
+        return <CustomerList businessId={businessId} onSelectCustomer={id => { setSelectedCustomerId(id); setActiveKey('customer-detail'); }} />;
       case 'customer-detail':
-        return (
-          <CustomerDetail customerId={selectedCustomerId} businessId={businessId} onBack={() => setActiveKey('customers')} />
-        );
+        return <CustomerDetail customerId={selectedCustomerId} businessId={businessId} onBack={() => setActiveKey('customers')} />;
       case 'sales':
-        return (
-          <SaleList
-            businessId={businessId}
-            onSelect={id => {
-              setSelectedSaleId(id);
-              setActiveKey('sale-detail');
-            }}
-            onCreate={() => setActiveKey('sale-form')}
-          />
-        );
+        return <SaleList businessId={businessId} onSelect={id => { setSelectedSaleId(id); setActiveKey('sale-detail'); }} onCreate={() => setActiveKey('sale-form')} />;
       case 'sale-form':
-        return (
-          <SaleForm
-            businessId={businessId}
-            onBack={() => setActiveKey('sales')}
-            onSuccess={id => {
-              setSelectedSaleId(id);
-              setActiveKey('sale-detail');
-            }}
-          />
-        );
+        return <SaleForm businessId={businessId} onBack={() => setActiveKey('sales')} onSuccess={id => { setSelectedSaleId(id); setActiveKey('sale-detail'); }} />;
       case 'sale-detail':
-        return (
-          <SaleDetail saleId={selectedSaleId} businessId={businessId} onBack={() => setActiveKey('sales')} />
-        );
+        return <SaleDetail saleId={selectedSaleId} businessId={businessId} onBack={() => setActiveKey('sales')} />;
       case 'pos':
         return <POSScreen businessId={businessId} />;
       case 'finance':
