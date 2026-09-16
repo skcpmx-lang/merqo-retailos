@@ -1,0 +1,141 @@
+import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { businesses } from './business';
+import { products, units } from './products';
+
+export const customers = sqliteTable('customers', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  name: text('name').notNull(),
+  phone: text('phone'),
+  email: text('email'),
+  address: text('address'),
+  openingDuePaisa: integer('opening_due_paisa').notNull().default(0),
+  currentDuePaisa: integer('current_due_paisa').notNull().default(0),
+  creditLimitPaisa: integer('credit_limit_paisa').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
+  deletedAt: integer('deleted_at'),
+});
+
+export const customerTransactions = sqliteTable('customer_transactions', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  customerId: text('customer_id').notNull().references(() => customers.id),
+  transactionType: text('transaction_type').notNull(),
+  amountPaisa: integer('amount_paisa').notNull(),
+  referenceType: text('reference_type'),
+  referenceId: text('reference_id'),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  createdBy: text('created_by'),
+});
+
+export const sales = sqliteTable('sales', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  customerId: text('customer_id').references(() => customers.id),
+  saleNumber: text('sale_number').notNull(),
+  saleDate: integer('sale_date').notNull().$defaultFn(() => Date.now()),
+  status: text('status').notNull().default('completed'),
+  subtotalPaisa: integer('subtotal_paisa').notNull().default(0),
+  discountType: text('discount_type'),
+  discountValue: integer('discount_value').notNull().default(0),
+  discountPaisa: integer('discount_paisa').notNull().default(0),
+  taxPaisa: integer('tax_paisa').notNull().default(0),
+  totalPaisa: integer('total_paisa').notNull().default(0),
+  paidPaisa: integer('paid_paisa').notNull().default(0),
+  duePaisa: integer('due_paisa').notNull().default(0),
+  changePaisa: integer('change_paisa').notNull().default(0),
+  notes: text('notes'),
+  isDue: integer('is_due', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  updatedAt: integer('updated_at').notNull().$defaultFn(() => Date.now()),
+  createdBy: text('created_by'),
+  shiftId: text('shift_id'),
+});
+
+export const saleItems = sqliteTable('sale_items', {
+  id: text('id').primaryKey(),
+  saleId: text('sale_id').notNull().references(() => sales.id),
+  productId: text('product_id').notNull().references(() => products.id),
+  unitId: text('unit_id').notNull().references(() => units.id),
+  quantityMilli: integer('quantity_milli').notNull(),
+  baseQuantityMilli: integer('base_quantity_milli').notNull(),
+  unitPricePaisa: integer('unit_price_paisa').notNull(),
+  baseUnitPricePaisa: integer('base_unit_price_paisa').notNull(),
+  costPerUnitPaisa: integer('cost_per_unit_paisa').notNull().default(0),
+  discountPaisa: integer('discount_paisa').notNull().default(0),
+  lineTotalPaisa: integer('line_total_paisa').notNull(),
+  lineCostTotalPaisa: integer('line_cost_total_paisa').notNull().default(0),
+  productNameSnapshot: text('product_name_snapshot'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});
+
+export const salePayments = sqliteTable('sale_payments', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  saleId: text('sale_id').notNull().references(() => sales.id),
+  paymentMethod: text('payment_method').notNull(),
+  amountPaisa: integer('amount_paisa').notNull(),
+  cashAccountId: text('cash_account_id'),
+  bankAccountId: text('bank_account_id'),
+  mfsAccountId: text('mfs_account_id'),
+  mfsProviderId: text('mfs_provider_id'),
+  cardType: text('card_type'),
+  cardLast4: text('card_last4'),
+  chequeNumber: text('cheque_number'),
+  transactionRef: text('transaction_ref'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});
+
+export const saleReturns = sqliteTable('sale_returns', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  saleId: text('sale_id').notNull().references(() => sales.id),
+  customerId: text('customer_id').references(() => customers.id),
+  returnNumber: text('return_number').notNull(),
+  returnDate: integer('return_date').notNull().$defaultFn(() => Date.now()),
+  totalPaisa: integer('total_paisa').notNull().default(0),
+  refundPaisa: integer('refund_paisa').notNull().default(0),
+  refundMethod: text('refund_method'),
+  reason: text('reason'),
+  status: text('status').notNull().default('completed'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  createdBy: text('created_by'),
+});
+
+export const saleReturnItems = sqliteTable('sale_return_items', {
+  id: text('id').primaryKey(),
+  returnId: text('return_id').notNull().references(() => saleReturns.id),
+  productId: text('product_id').notNull().references(() => products.id),
+  quantityMilli: integer('quantity_milli').notNull(),
+  unitPricePaisa: integer('unit_price_paisa').notNull(),
+  lineTotalPaisa: integer('line_total_paisa').notNull(),
+  restock: integer('restock', { mode: 'boolean' }).notNull().default(true),
+});
+
+export const discounts = sqliteTable('discounts', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  name: text('name').notNull(),
+  type: text('type').notNull().default('fixed'),
+  value: integer('value').notNull().default(0),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  validFrom: integer('valid_from'),
+  validTo: integer('valid_to'),
+  applicableTo: text('applicable_to').notNull().default('all'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+});
+
+export const heldSales = sqliteTable('held_sales', {
+  id: text('id').primaryKey(),
+  businessId: text('business_id').notNull().references(() => businesses.id),
+  heldNumber: text('held_number').notNull(),
+  customerId: text('customer_id').references(() => customers.id),
+  cartJson: text('cart_json').notNull(),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
+  expiresAt: integer('expires_at'),
+  createdBy: text('created_by'),
+});

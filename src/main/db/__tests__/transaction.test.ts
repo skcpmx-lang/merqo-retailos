@@ -54,7 +54,7 @@ describe('DB Transaction — atomicity mandatory test', () => {
   });
 
   it('should handle financial ledger rollback', () => {
-    // Simulate financial operation: insert business + user, but fail on second user (duplicate phone)
+    // Simulate financial operation: insert business + user, but fail on duplicate id
     db.prepare('INSERT INTO businesses (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)').run('biz-1', 'Test Biz', Date.now(), Date.now());
 
     const transaction = db.transaction(() => {
@@ -76,11 +76,11 @@ describe('DB Transaction — atomicity mandatory test', () => {
         Date.now()
       );
 
-      // Fail: duplicate phone
+      // Fail: duplicate id
       db.prepare('INSERT INTO users (id, name, phone, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)').run(
-        'user-2',
+        'user-1',
         'User 2',
-        '01700000001',
+        '01700000002',
         'hash',
         Date.now(),
         Date.now()

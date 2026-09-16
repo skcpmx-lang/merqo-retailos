@@ -1,6 +1,7 @@
 /**
  * Migration infrastructure
  * Handles first-launch DB initialization, schema versioning, integrity checks
+ * Phase 2: Full schema for products, inventory, suppliers, customers, finance
  */
 
 import fs from 'fs';
@@ -23,9 +24,6 @@ export class Migrator {
     this.migrationsPath = migrationsPath || path.join(__dirname, 'migrations');
   }
 
-  /**
-   * Initialize migrations table
-   */
   initMigrationsTable() {
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS migrations (
@@ -37,9 +35,6 @@ export class Migrator {
     `);
   }
 
-  /**
-   * Get executed migrations
-   */
   getExecutedMigrations(): string[] {
     try {
       const rows = this.db.prepare('SELECT name FROM migrations ORDER BY id').all() as Array<{ name: string }>;
@@ -49,9 +44,6 @@ export class Migrator {
     }
   }
 
-  /**
-   * Get pending migrations from files
-   */
   getPendingMigrations(): Migration[] {
     if (!fs.existsSync(this.migrationsPath)) {
       return [];
@@ -76,10 +68,6 @@ export class Migrator {
     return pending;
   }
 
-  /**
-   * Run pending migrations inside transaction
-   * Fails safely — rolls back on error
-   */
   runMigrations(): { success: boolean; executed: string[]; error?: string } {
     this.initMigrationsTable();
 
@@ -94,7 +82,6 @@ export class Migrator {
     const executed: string[] = [];
 
     try {
-      // Integrity check before migrations
       const integrity = this.checkIntegrity();
       if (!integrity.ok) {
         throw new Error(`Database integrity check failed before migrations: ${integrity.errors.join(', ')}`);
@@ -118,7 +105,6 @@ export class Migrator {
         }
       }
 
-      // Integrity check after
       const afterIntegrity = this.checkIntegrity();
       if (!afterIntegrity.ok) {
         throw new Error(`Database integrity check failed after migrations: ${afterIntegrity.errors.join(', ')}`);
@@ -134,21 +120,18 @@ export class Migrator {
   }
 
   /**
-   * Create initial schema if no migrations
-   * For Phase 1 foundation
+   * Create initial schema — Phase 1 + Phase 2 full schema for new DBs
    */
   createInitialSchema() {
-    logger.info('Creating initial schema (Phase 1 foundation)');
+    logger.info('Creating initial schema (Phase 1 + Phase 2 full)');
 
-    const schemaSql = `
-      -- System settings
+    const phase1Sql = `
       CREATE TABLE IF NOT EXISTS system_settings (
         key TEXT PRIMARY KEY,
         value TEXT,
         updated_at INTEGER NOT NULL
       );
 
-      -- Businesses
       CREATE TABLE IF NOT EXISTS businesses (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -164,7 +147,6 @@ export class Migrator {
         updated_at INTEGER NOT NULL
       );
 
-      -- Business settings
       CREATE TABLE IF NOT EXISTS business_settings (
         id TEXT PRIMARY KEY,
         business_id TEXT NOT NULL REFERENCES businesses(id),
@@ -176,12 +158,11 @@ export class Migrator {
         UNIQUE(business_id, key)
       );
 
-      -- Users
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         business_id TEXT REFERENCES businesses(id),
         name TEXT NOT NULL,
-        phone TEXT UNIQUE,
+        phone TEXT,
         email TEXT,
         password_hash TEXT NOT NULL,
         pin_hash TEXT,
@@ -196,10 +177,10 @@ export class Migrator {
       CREATE INDEX IF NOT EXISTS idx_users_business_id ON users(business_id);
       CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
 
-      -- Roles
       CREATE TABLE IF NOT EXISTS roles (
         id TEXT PRIMARY KEY,
         business_id TEXT REFERENCES businesses(id),
+        code TEXT,
         name TEXT NOT NULL,
         name_bn TEXT,
         description TEXT,
@@ -208,20 +189,21 @@ export class Migrator {
         updated_at INTEGER NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_roles_business_id ON roles(business_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_roles_code ON roles(code);
       CREATE UNIQUE INDEX IF NOT EXISTS idx_roles_business_name ON roles(business_id, name);
 
-      -- Permissions
       CREATE TABLE IF NOT EXISTS permissions (
         id TEXT PRIMARY KEY,
+        code TEXT,
         name TEXT NOT NULL,
         name_bn TEXT,
         description TEXT,
         module TEXT NOT NULL,
         created_at INTEGER NOT NULL
       );
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_permissions_code ON permissions(code);
       CREATE INDEX IF NOT EXISTS idx_permissions_module ON permissions(module);
 
-      -- Role Permissions
       CREATE TABLE IF NOT EXISTS role_permissions (
         id TEXT PRIMARY KEY,
         role_id TEXT NOT NULL REFERENCES roles(id),
@@ -230,7 +212,6 @@ export class Migrator {
         UNIQUE(role_id, permission_id)
       );
 
-      -- User Roles
       CREATE TABLE IF NOT EXISTS user_roles (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL REFERENCES users(id),
@@ -240,11 +221,10 @@ export class Migrator {
         UNIQUE(user_id, role_id)
       );
 
-      -- Audit Logs
       CREATE TABLE IF NOT EXISTS audit_logs (
         id TEXT PRIMARY KEY,
         business_id TEXT REFERENCES businesses(id),
-        user_id TEXT REFERENCES users(id),
+        user_id TEXT,
         action TEXT NOT NULL,
         entity_type TEXT NOT NULL,
         entity_id TEXT,
@@ -259,7 +239,6 @@ export class Migrator {
       CREATE INDEX IF NOT EXISTS idx_audit_business_created ON audit_logs(business_id, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
 
-      -- Migrations
       CREATE TABLE IF NOT EXISTS migrations (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
@@ -268,9 +247,240 @@ export class Migrator {
       );
     `;
 
+    // Try to load Phase 2 migration file for full schema if exists
+    let phase2Sql = '';
+    const possiblePaths = [
+      path.join(__dirname, 'migrations', '0002_phase2_full_schema.sql'),
+      path.join(process.cwd(), 'src/main/db/migrations/0002_phase2_full_schema.sql'),
+    ];
+
+    for (const p of possiblePaths) {
+      if (fs.existsSync(p)) {
+        phase2Sql = fs.readFileSync(p, 'utf-8');
+        logger.info(`Loaded Phase 2 schema from ${p}`);
+        break;
+      }
+    }
+
+    // If file not found, use embedded minimal Phase 2 schema (fallback)
+    if (!phase2Sql) {
+      logger.warn('Phase 2 migration file not found, using embedded schema');
+      phase2Sql = `
+        CREATE TABLE IF NOT EXISTS categories (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          parent_id TEXT,
+          name TEXT NOT NULL,
+          name_bn TEXT,
+          description TEXT,
+          image_path TEXT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS brands (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          name TEXT NOT NULL,
+          name_bn TEXT,
+          logo_path TEXT,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS units (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          name TEXT NOT NULL,
+          short_name TEXT,
+          name_bn TEXT,
+          is_base_unit INTEGER NOT NULL DEFAULT 0,
+          unit_group TEXT NOT NULL DEFAULT 'piece',
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS unit_conversions (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          from_unit_id TEXT NOT NULL REFERENCES units(id),
+          to_unit_id TEXT NOT NULL REFERENCES units(id),
+          conversion_factor REAL NOT NULL,
+          is_base_conversion INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          UNIQUE(from_unit_id, to_unit_id)
+        );
+        CREATE TABLE IF NOT EXISTS products (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          category_id TEXT REFERENCES categories(id),
+          brand_id TEXT REFERENCES brands(id),
+          base_unit_id TEXT NOT NULL REFERENCES units(id),
+          purchase_unit_id TEXT REFERENCES units(id),
+          sale_unit_id TEXT REFERENCES units(id),
+          name TEXT NOT NULL,
+          name_bn TEXT,
+          description TEXT,
+          sku TEXT NOT NULL,
+          barcode TEXT,
+          cost_price_paisa INTEGER NOT NULL DEFAULT 0,
+          selling_price_paisa INTEGER NOT NULL DEFAULT 0,
+          mrp_paisa INTEGER,
+          min_stock_milli INTEGER NOT NULL DEFAULT 0,
+          reorder_level_milli INTEGER NOT NULL DEFAULT 0,
+          opening_stock_milli INTEGER NOT NULL DEFAULT 0,
+          is_stock_trackable INTEGER NOT NULL DEFAULT 1,
+          is_sellable INTEGER NOT NULL DEFAULT 1,
+          is_purchasable INTEGER NOT NULL DEFAULT 1,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          image_path TEXT,
+          tax_rate REAL NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER,
+          created_by TEXT,
+          updated_by TEXT
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_products_sku ON products(sku);
+        CREATE TABLE IF NOT EXISTS product_barcodes (
+          id TEXT PRIMARY KEY,
+          product_id TEXT NOT NULL REFERENCES products(id),
+          unit_id TEXT REFERENCES units(id),
+          barcode TEXT NOT NULL,
+          quantity_milli INTEGER NOT NULL DEFAULT 1000,
+          is_primary INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_product_barcodes_barcode ON product_barcodes(barcode);
+        CREATE TABLE IF NOT EXISTS stock_levels (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          product_id TEXT NOT NULL REFERENCES products(id),
+          location_id TEXT NOT NULL DEFAULT 'main',
+          quantity_milli INTEGER NOT NULL DEFAULT 0,
+          reserved_milli INTEGER NOT NULL DEFAULT 0,
+          last_movement_at INTEGER,
+          updated_at INTEGER NOT NULL,
+          UNIQUE(product_id, location_id)
+        );
+        CREATE TABLE IF NOT EXISTS stock_movements (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          product_id TEXT NOT NULL REFERENCES products(id),
+          movement_type TEXT NOT NULL,
+          quantity_milli INTEGER NOT NULL,
+          unit_id TEXT REFERENCES units(id),
+          cost_paisa INTEGER NOT NULL DEFAULT 0,
+          reference_type TEXT,
+          reference_id TEXT,
+          notes TEXT,
+          location_id TEXT NOT NULL DEFAULT 'main',
+          created_at INTEGER NOT NULL,
+          created_by TEXT,
+          CHECK(quantity_milli != 0)
+        );
+        CREATE TABLE IF NOT EXISTS suppliers (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          name TEXT NOT NULL,
+          phone TEXT,
+          email TEXT,
+          address TEXT,
+          contact_person TEXT,
+          opening_payable_paisa INTEGER NOT NULL DEFAULT 0,
+          current_payable_paisa INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS supplier_transactions (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          supplier_id TEXT NOT NULL REFERENCES suppliers(id),
+          transaction_type TEXT NOT NULL,
+          amount_paisa INTEGER NOT NULL,
+          reference_type TEXT,
+          reference_id TEXT,
+          notes TEXT,
+          created_at INTEGER NOT NULL,
+          created_by TEXT
+        );
+        CREATE TABLE IF NOT EXISTS customers (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          name TEXT NOT NULL,
+          phone TEXT,
+          email TEXT,
+          address TEXT,
+          opening_due_paisa INTEGER NOT NULL DEFAULT 0,
+          current_due_paisa INTEGER NOT NULL DEFAULT 0,
+          credit_limit_paisa INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL,
+          deleted_at INTEGER
+        );
+        CREATE TABLE IF NOT EXISTS customer_transactions (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          customer_id TEXT NOT NULL REFERENCES customers(id),
+          transaction_type TEXT NOT NULL,
+          amount_paisa INTEGER NOT NULL,
+          reference_type TEXT,
+          reference_id TEXT,
+          notes TEXT,
+          created_at INTEGER NOT NULL,
+          created_by TEXT
+        );
+        CREATE TABLE IF NOT EXISTS expense_categories (
+          id TEXT PRIMARY KEY,
+          business_id TEXT NOT NULL REFERENCES businesses(id),
+          name TEXT NOT NULL,
+          name_bn TEXT,
+          description TEXT,
+          is_system INTEGER NOT NULL DEFAULT 0,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS mfs_providers (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          name_bn TEXT,
+          code TEXT NOT NULL,
+          is_active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_mfs_providers_code ON mfs_providers(code);
+        CREATE TABLE IF NOT EXISTS product_cost_history (
+          id TEXT PRIMARY KEY,
+          product_id TEXT NOT NULL REFERENCES products(id),
+          purchase_id TEXT,
+          old_cost_paisa INTEGER NOT NULL,
+          new_cost_paisa INTEGER NOT NULL,
+          old_wac_paisa INTEGER NOT NULL,
+          new_wac_paisa INTEGER NOT NULL,
+          reason TEXT NOT NULL DEFAULT 'purchase',
+          created_at INTEGER NOT NULL,
+          created_by TEXT
+        );
+      `;
+    }
+
     try {
-      this.db.exec(schemaSql);
-      logger.info('Initial schema created');
+      this.db.exec(phase1Sql);
+      if (phase2Sql) {
+        this.db.exec(phase2Sql);
+      }
+      // Record that phase2 migration is applied for new DBs
+      try {
+        this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0002_phase2_full_schema', Date.now());
+      } catch {}
+      logger.info('Initial schema created (Phase 1 + Phase 2)');
       return { success: true };
     } catch (e) {
       logger.error('Failed to create initial schema', e);
@@ -288,26 +498,18 @@ export class Migrator {
     }
   }
 
-  /**
-   * Detect if DB is new (no businesses, no users)
-   */
   isFirstLaunch(): boolean {
     try {
       const businessCount = this.db.prepare('SELECT COUNT(*) as count FROM businesses').get() as { count: number };
       const userCount = this.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
       return businessCount.count === 0 && userCount.count === 0;
     } catch {
-      // Tables don't exist yet, so first launch
       return true;
     }
   }
 
-  /**
-   * Full initialization: create schema if needed, run migrations, verify
-   */
   initialize(): { success: boolean; isFirstLaunch: boolean; error?: string; executedMigrations: string[] } {
     try {
-      // Check if tables exist, if not create initial schema
       const tables = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='businesses'").get();
       if (!tables) {
         const result = this.createInitialSchema();
@@ -318,7 +520,6 @@ export class Migrator {
         this.initMigrationsTable();
       }
 
-      // Run pending migrations
       const migrationResult = this.runMigrations();
       if (!migrationResult.success) {
         return { success: false, isFirstLaunch: false, error: migrationResult.error, executedMigrations: migrationResult.executed };
