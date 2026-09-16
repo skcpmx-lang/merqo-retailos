@@ -33,9 +33,19 @@ export const IPC_CHANNELS = {
   // System
   SYSTEM_GET_CONFIG: 'system:getConfig',
 
-  // Hardware (future, but define channel allowlist now)
+  // Hardware — P4.2
   HARDWARE_GET_PRINTERS: 'hardware:getPrinters',
+  HARDWARE_GET_DEFAULT_PRINTER: 'hardware:getDefaultPrinter',
+  HARDWARE_GET_CONFIGURED_PRINTER: 'hardware:getConfiguredPrinter',
+  HARDWARE_SAVE_PRINTER_CONFIG: 'hardware:savePrinterConfig',
+  HARDWARE_GET_PRINTER_STATUS: 'hardware:getPrinterStatus',
+  HARDWARE_PRINT_RECEIPT: 'hardware:printReceipt',
+  HARDWARE_PRINT_INVOICE: 'hardware:printInvoice',
+  HARDWARE_REPRINT_RECEIPT: 'hardware:reprintReceipt',
   HARDWARE_TEST_PRINTER: 'hardware:testPrinter',
+  HARDWARE_GET_SCANNER_CONFIG: 'hardware:getScannerConfig',
+  HARDWARE_SAVE_SCANNER_CONFIG: 'hardware:saveScannerConfig',
+  HARDWARE_GET_DIAGNOSTICS: 'hardware:getDiagnostics',
   HARDWARE_BARCODE_TEST: 'hardware:barcodeTest',
 
   // Suppliers

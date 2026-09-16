@@ -32,7 +32,18 @@ interface Window {
     };
     hardware: {
       getPrinters: () => Promise<any>;
+      getDefaultPrinter: () => Promise<any>;
+      getConfiguredPrinter: () => Promise<any>;
+      savePrinterConfig: (config: any) => Promise<any>;
+      getPrinterStatus: (id: string) => Promise<any>;
+      printReceipt: (payload: any) => Promise<any>;
+      printInvoice: (payload: any) => Promise<any>;
+      reprintReceipt: (payload: any) => Promise<any>;
       testPrinter: (id: string) => Promise<any>;
+      getScannerConfig: () => Promise<any>;
+      saveScannerConfig: (config: any) => Promise<any>;
+      getDiagnostics: () => Promise<any>;
+      barcodeTest: (barcode: string) => Promise<any>;
     };
     supplier: {
       create: (payload: any) => Promise<any>;

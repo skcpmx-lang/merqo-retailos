@@ -1277,9 +1277,131 @@ export function registerIpcHandlers() {
     }
   });
 
-  // Hardware placeholders (future)
+  // Hardware — P4.2
   createHandler(IPC_CHANNELS.HARDWARE_GET_PRINTERS, async () => {
-    return { printers: [], message: 'Not implemented in Phase 1' };
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    const printers = await service.listPrinters();
+    return { printers };
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_GET_DEFAULT_PRINTER, async () => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.getDefaultPrinter();
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_GET_CONFIGURED_PRINTER, async () => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.getConfiguredPrinter();
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_SAVE_PRINTER_CONFIG, async (_event, payload: any) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.savePrinterConfiguration(payload);
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_GET_PRINTER_STATUS, async (_event, payload: { id: string }) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.getPrinterStatus(payload.id);
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_PRINT_RECEIPT, async (_event, payload: { saleId: string; printerId?: string; printerName?: string; paperWidth?: string; copies?: number; silent?: boolean }) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    // RBAC: need sales.view or pos.sell
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.view') && !currentUser.permissions.includes('pos.sell') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized to print', messageBn: 'প্রিন্ট করার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.printReceipt(payload.saleId, {
+      printerId: payload.printerId,
+      printerName: payload.printerName,
+      paperWidth: payload.paperWidth as any,
+      copies: payload.copies,
+      silent: payload.silent,
+    });
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_PRINT_INVOICE, async (_event, payload: { saleId: string; printerId?: string; printerName?: string; copies?: number; silent?: boolean }) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.view') && !currentUser.permissions.includes('pos.sell') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'প্রিন্ট করার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.printInvoice(payload.saleId, {
+      printerId: payload.printerId,
+      printerName: payload.printerName,
+      copies: payload.copies,
+      silent: payload.silent,
+    });
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_REPRINT_RECEIPT, async (_event, payload: { saleId: string; printerId?: string; printerName?: string; paperWidth?: string; copies?: number; silent?: boolean }) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('sales.view') && !currentUser.permissions.includes('pos.sell') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'পুনরায় প্রিন্টের অনুমতি নেই', statusCode: 403 });
+    }
+    return service.reprintReceipt(payload.saleId, {
+      printerId: payload.printerId,
+      printerName: payload.printerName,
+      paperWidth: payload.paperWidth as any,
+      copies: payload.copies,
+      silent: payload.silent,
+    });
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_TEST_PRINTER, async (_event, payload: { id: string }) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.testPrinter(payload.id);
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_GET_SCANNER_CONFIG, async () => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.getScannerConfig();
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_SAVE_SCANNER_CONFIG, async (_event, payload: any) => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.saveScannerConfig(payload);
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_GET_DIAGNOSTICS, async () => {
+    const { PrinterService } = require('../hardware/printer.service');
+    const service = PrinterService.getInstance();
+    return service.getDiagnostics();
+  });
+
+  createHandler(IPC_CHANNELS.HARDWARE_BARCODE_TEST, async (_event, payload: { barcode: string }) => {
+    // Barcode test — lookup product, return result, no fake data
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { ProductRepository } = require('../db/repositories/product.repository');
+    const { StockLevelRepository } = require('../db/repositories/inventory.repository');
+    const repo = new ProductRepository(db);
+    const stockRepo = new StockLevelRepository(db);
+    const barcode = (payload.barcode || '').trim();
+    if (!barcode) {
+      throw new AppError({ code: 'VALIDATION_ERROR', message: 'Barcode required', messageBn: 'বারকোড প্রয়োজন', statusCode: 400 });
+    }
+    const results = repo.findByBarcodeAll(barcode);
+    if (!results || results.length === 0) {
+      return { found: false, barcode, messageBn: 'এই বারকোডের কোনো পণ্য পাওয়া যায়নি।' };
+    }
+    const enriched = results.map((r: any) => {
+      const stock = stockRepo.findByProductAndLocation(r.product.id, 'main');
+      return { product: r.product, barcodeDetail: r.barcodeDetail, stockMilli: stock?.quantityMilli || 0 };
+    });
+    return { found: true, barcode, products: enriched };
   });
 
   logger.info('IPC handlers registered');

@@ -19,9 +19,10 @@ import { MfsAccountsScreen } from './screens/finance/MfsAccountsScreen';
 import { ExpensesScreen } from './screens/finance/ExpensesScreen';
 import { TransfersScreen } from './screens/finance/TransfersScreen';
 import { ShiftsScreen } from './screens/finance/ShiftsScreen';
+import { HardwareSettingsScreen } from './screens/hardware/HardwareSettingsScreen';
 import './lib/i18n';
 
-type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail' | 'pos' | 'finance' | 'cash-accounts' | 'bank-accounts' | 'mfs-accounts' | 'expenses' | 'transfers' | 'shifts';
+type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail' | 'pos' | 'finance' | 'cash-accounts' | 'bank-accounts' | 'mfs-accounts' | 'expenses' | 'transfers' | 'shifts' | 'hardware';
 
 export const App: React.FC = () => {
   const [ready, setReady] = useState(false);
@@ -187,6 +188,8 @@ export const App: React.FC = () => {
         return <TransfersScreen businessId={businessId} />;
       case 'shifts':
         return <ShiftsScreen businessId={businessId} />;
+      case 'hardware':
+        return <HardwareSettingsScreen />;
       default:
         return <Dashboard />;
     }

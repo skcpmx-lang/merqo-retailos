@@ -180,10 +180,21 @@ const merqoAPI = {
     currentShift: (businessId: string) => invoke('pos:currentShift', { businessId }),
   },
 
-  // Hardware (future, but expose now for diagnostics)
+  // Hardware — P4.2
   hardware: {
     getPrinters: () => invoke('hardware:getPrinters'),
+    getDefaultPrinter: () => invoke('hardware:getDefaultPrinter'),
+    getConfiguredPrinter: () => invoke('hardware:getConfiguredPrinter'),
+    savePrinterConfig: (config: any) => invoke('hardware:savePrinterConfig', config),
+    getPrinterStatus: (id: string) => invoke('hardware:getPrinterStatus', { id }),
+    printReceipt: (payload: { saleId: string; printerId?: string; printerName?: string; paperWidth?: string; copies?: number; silent?: boolean }) => invoke('hardware:printReceipt', payload),
+    printInvoice: (payload: { saleId: string; printerId?: string; printerName?: string; copies?: number; silent?: boolean }) => invoke('hardware:printInvoice', payload),
+    reprintReceipt: (payload: { saleId: string; printerId?: string; printerName?: string; paperWidth?: string; copies?: number; silent?: boolean }) => invoke('hardware:reprintReceipt', payload),
     testPrinter: (id: string) => invoke('hardware:testPrinter', { id }),
+    getScannerConfig: () => invoke('hardware:getScannerConfig'),
+    saveScannerConfig: (config: any) => invoke('hardware:saveScannerConfig', config),
+    getDiagnostics: () => invoke('hardware:getDiagnostics'),
+    barcodeTest: (barcode: string) => invoke('hardware:barcodeTest', { barcode }),
   },
 
   // Generic invoke with validation (for internal use, but still allowlisted)

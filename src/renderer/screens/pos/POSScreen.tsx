@@ -2,14 +2,15 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { usePOSProductSearch, useHeldSales, useHoldSale, useHeldSaleResume, useHeldSaleCancel, useCurrentShift } from '../../hooks/usePOS';
 import { useCustomers, useCustomerSearch } from '../../hooks/useCustomers';
 import { useCreateSale, useUnits, useUnitConversions, useFinanceAccounts } from '../../hooks/useSales';
-import { useBarcodeInput } from '../../hooks/useBarcodeScanner';
+import { useBarcodeInput, useBarcodeScanner } from '../../hooks/useBarcodeScanner';
+import { useConfiguredPrinter, usePrintReceipt, useScannerConfig } from '../../hooks/useHardware';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
-import { POSCartItem, calculateCartTotals, formatPaisa, formatQty } from '../../components/pos/POSCartTypes';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Pause, Play, CreditCard, Banknote, Smartphone, User, HelpCircle, X, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
+import { POSCartItem, calculateCartTotals, formatPaisa } from '../../components/pos/POSCartTypes';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Pause, Play, CreditCard, User, HelpCircle, X, AlertTriangle, CheckCircle, Printer } from 'lucide-react';
 
 function generateCartItemId() {
   return `cart_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -29,13 +30,14 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [payments, setPayments] = useState<{ method: string; amount: string; cashAccountId?: string; bankAccountId?: string; mfsAccountId?: string }[]>([{ method: 'cash', amount: '' }]);
   const [showHeldModal, setShowHeldModal] = useState(false);
-  const [showSuccess, setShowSuccess] = useState<{ saleNumber: string; total: number; paid: number; change: number; due: number } | null>(null);
+  const [showSuccess, setShowSuccess] = useState<{ saleId: string; saleNumber: string; total: number; paid: number; change: number; due: number } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [quickCustomer, setQuickCustomer] = useState({ name: '', phone: '' });
 
-  // Error
+  // Error & print status
   const [errorMsg, setErrorMsg] = useState<string>('');
+  const [printStatus, setPrintStatus] = useState<string>('');
 
   // Refs
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -50,10 +52,13 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
   const { data: conversions } = useUnitConversions(businessId);
   const { cashQuery } = useFinanceAccounts(businessId);
   const { data: currentShift } = useCurrentShift(businessId);
+  const { data: configuredPrinter } = useConfiguredPrinter();
+  const { data: scannerConfig } = useScannerConfig();
   const createSaleMut = useCreateSale();
   const holdSaleMut = useHoldSale();
   const resumeHeldMut = useHeldSaleResume();
   const cancelHeldMut = useHeldSaleCancel();
+  const printReceiptMut = usePrintReceipt();
 
   const unitMap = useMemo(() => {
     const m: Record<string, { name: string; shortName: string }> = {};
@@ -74,27 +79,56 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
   const duePaisa = totals.totalPaisa - paidPaisa;
   const changePaisa = paidPaisa > totals.totalPaisa ? paidPaisa - totals.totalPaisa : 0;
 
-  // Barcode handling
-  const handleBarcodeScan = useCallback(async (barcode: string) => {
-    try {
-      const res = await window.merqo.pos.productByBarcode({ businessId, barcode });
-      const data = res.success === false ? [] : (res.data || res);
-      if (!data || data.length === 0) {
-        setErrorMsg(`পণ্যটি খুঁজে পাওয়া যায়নি। বারকোড: ${barcode}`);
-        return;
+  // Barcode handling — P4.2 enhanced with inactive/unknown handling, duplicate increment
+  const handleBarcodeScan = useCallback(
+    async (barcode: string) => {
+      try {
+        const res = await window.merqo.pos.productByBarcode({ businessId, barcode });
+        const data = res.success === false ? [] : (res.data || res);
+        if (!data || data.length === 0) {
+          setErrorMsg(`এই বারকোডের কোনো পণ্য পাওয়া যায়নি। বারকোড: ${barcode}`);
+          return;
+        }
+        if (data.length > 1) {
+          setErrorMsg(`একাধিক পণ্য একই বারকোডে পাওয়া গেছে, প্রথমটি যোগ করা হলো`);
+        }
+        const first = data[0];
+        // Check inactive / non-sellable before adding
+        if (!first.product.isActive) {
+          setErrorMsg('এই পণ্যটি বিক্রয়ের জন্য সক্রিয় নয়।');
+          return;
+        }
+        if (!first.product.isSellable) {
+          setErrorMsg('এই পণ্যটি বিক্রয়যোগ্য নয়।');
+          return;
+        }
+        addProductToCart(first.product, first.barcodeDetail, first.stockMilli, first.unit);
+      } catch (e: any) {
+        // Handle unknown barcode with Bengali message
+        const msg = e.message || '';
+        if (msg.includes('পাওয়া যায়নি') || msg.includes('not found') || msg.includes('NOT_FOUND')) {
+          setErrorMsg(`এই বারকোডের কোনো পণ্য পাওয়া যায়নি।`);
+        } else {
+          setErrorMsg(msg || 'বারকোড স্ক্যান করা যায়নি। আবার চেষ্টা করুন।');
+        }
       }
-      if (data.length > 1) {
-        // Ambiguity — show first but warn
-        setErrorMsg(`একাধিক পণ্য একই বারকোডে পাওয়া গেছে, প্রথমটি যোগ করা হলো`);
-      }
-      const first = data[0];
-      addProductToCart(first.product, first.barcodeDetail, first.stockMilli, first.unit);
-    } catch (e: any) {
-      setErrorMsg(e.message || 'পণ্যটি খুঁজে পাওয়া যায়নি।');
-    }
-  }, [businessId]);
+    },
+    [businessId]
+  );
 
   const barcodeInput = useBarcodeInput(handleBarcodeScan);
+
+  // P4.2: Global scanner hook with configurable thresholds
+  const globalScanner = useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: true,
+    minLength: scannerConfig?.minLength || 3,
+    maxLength: scannerConfig?.maxLength || 64,
+    scanTimeoutMs: scannerConfig?.scanTimeoutMs || 150,
+    charThresholdMs: scannerConfig?.charThresholdMs || 50,
+    suffix: (scannerConfig?.suffix as any) || 'Enter',
+    prefix: scannerConfig?.prefix || '',
+  });
 
   // Focus barcode on mount and F1
   useEffect(() => {
@@ -104,7 +138,6 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Avoid when typing in inputs except for F-keys
       const isInput = (e.target as HTMLElement).tagName === 'INPUT' || (e.target as HTMLElement).tagName === 'TEXTAREA';
 
       if (e.key === 'F1') {
@@ -116,7 +149,6 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
         setShowCustomerModal(true);
       } else if (e.key === 'F3') {
         e.preventDefault();
-        // Quantity editing — focus selected cart item
         if (selectedCartIndex >= 0) {
           const el = document.querySelector(`[data-cart-index="${selectedCartIndex}"] input`) as HTMLInputElement;
           el?.focus();
@@ -175,13 +207,12 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
     const unitInfo = unitMap[unitId] || { name: unitId, shortName: unitId };
     const qtyFromBarcode = barcodeDetail?.quantityMilli ? barcodeDetail.quantityMilli / 1000 : 1;
 
-    // Check if already in cart with same unit
+    // Duplicate scan: same barcode → quantity +1 (P4.2 requirement)
     const existingIdx = cartItems.findIndex(item => item.productId === product.id && item.unitId === unitId);
     if (existingIdx >= 0) {
       const newItems = [...cartItems];
       const existing = newItems[existingIdx];
       const newQty = existing.quantity + qtyFromBarcode;
-      // Stock check for increment
       if (product.isStockTrackable) {
         const baseQty = calculateBaseQty(newQty, unitId, product.baseUnitId, conversions);
         if (baseQty > stockMilli) {
@@ -200,11 +231,9 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
       return;
     }
 
-    // New item
     const quantity = qtyFromBarcode;
     const quantityMilli = Math.round(quantity * 1000);
 
-    // Stock check
     if (product.isStockTrackable) {
       const baseQty = calculateBaseQty(quantity, unitId, product.baseUnitId, conversions);
       if (baseQty > stockMilli) {
@@ -242,10 +271,8 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
   const calculateBaseQty = (qty: number, fromUnitId: string, baseUnitId: string, convs: any): number => {
     if (fromUnitId === baseUnitId) return Math.round(qty * 1000);
     if (!convs) return Math.round(qty * 1000);
-    // Simple lookup for conversion factor
     const conv = convs.find((c: any) => c.fromUnitId === fromUnitId && c.toUnitId === baseUnitId);
     if (conv) return Math.round(qty * conv.conversionFactor * 1000);
-    // Try reverse
     const reverse = convs.find((c: any) => c.fromUnitId === baseUnitId && c.toUnitId === fromUnitId);
     if (reverse && reverse.conversionFactor !== 0) return Math.round(qty / reverse.conversionFactor * 1000);
     return Math.round(qty * 1000);
@@ -263,19 +290,11 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
     }
     const newItems = [...cartItems];
     const item = newItems[index];
-    // Stock check
     if (item.stockMilli > 0) {
-      const baseQty = calculateBaseQty(newQty, item.unitId, item.unitId, conversions); // Simplified, should use baseUnitId from product
-      // For now, check against stockMilli directly if unit is base
-      // Better: fetch product baseUnitId? For simplicity, check qty vs stock if same unit
-      // We'll do basic check
       const stockQty = item.stockMilli / 1000;
-      if (newQty > stockQty + 10) { // allow some buffer for converted units, but still warn
-        // Don't block, just warn? For POS, block if clearly over
-        if (newQty > stockQty * 2) {
-          setErrorMsg(`এই পণ্যের পর্যাপ্ত স্টক নেই। বর্তমান: ${stockQty}`);
-          return;
-        }
+      if (newQty > stockQty * 2) {
+        setErrorMsg(`এই পণ্যের পর্যাপ্ত স্টক নেই। বর্তমান: ${stockQty}`);
+        return;
       }
     }
     newItems[index] = {
@@ -341,26 +360,38 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
     }
   };
 
+  const handlePrintReceipt = async (saleId: string) => {
+    try {
+      setPrintStatus('প্রিন্ট করা হচ্ছে...');
+      const result = await printReceiptMut.mutateAsync({
+        saleId,
+        printerId: configuredPrinter?.selectedPrinterId || undefined,
+        printerName: configuredPrinter?.selectedPrinterName || undefined,
+        paperWidth: configuredPrinter?.paperWidth || '80mm',
+        copies: configuredPrinter?.copies || 1,
+      });
+      if (result.success) {
+        setPrintStatus(`প্রিন্ট সফল: ${result.printerName || 'ডিফল্ট প্রিন্টার'}`);
+        setTimeout(() => setPrintStatus(''), 3000);
+      } else {
+        // Print failure must NOT rollback sale — sale remains valid
+        setPrintStatus(result.messageBn || 'প্রিন্ট ব্যর্থ, কিন্তু বিক্রয় সফল হয়েছে। আবার চেষ্টা করুন।');
+      }
+    } catch (e: any) {
+      // Print failure does not affect sale
+      setPrintStatus(e.message || 'রসিদ প্রিন্ট করা যায়নি। প্রিন্টার পরীক্ষা করে আবার চেষ্টা করুন।');
+    }
+  };
+
   const handleCompleteSale = async () => {
     if (cartItems.length === 0) {
       setErrorMsg('কার্ট খালি');
       return;
     }
 
-    // Validate due requires customer
     if (duePaisa > 0 && !customerId) {
       setErrorMsg('বাকি বিক্রয়ের জন্য গ্রাহক নির্বাচন করুন।');
       return;
-    }
-
-    // Validate payment sum
-    const totalPaid = paidPaisa;
-    if (totalPaid === 0 && totals.totalPaisa > 0 && duePaisa === 0) {
-      // Allow full due? If customer selected, due is okay
-      if (!customerId) {
-        setErrorMsg('পরিশোধের পরিমাণ দিন বা গ্রাহক নির্বাচন করুন।');
-        return;
-      }
     }
 
     if (payments.some(p => p.amount && isNaN(parseFloat(p.amount)))) {
@@ -368,7 +399,6 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
       return;
     }
 
-    // Check payment sum matches paid if split
     if (payments.length > 1) {
       const sum = payments.reduce((s, p) => s + Math.round((parseFloat(p.amount) || 0) * 100), 0);
       if (sum !== paidPaisa) {
@@ -410,11 +440,11 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
         notes: `POS বিক্রয়`,
       });
 
-      // Success
       const change = paid > totals.totalPaisa ? paid - totals.totalPaisa : 0;
       const due = totals.totalPaisa > paid ? totals.totalPaisa - paid : 0;
 
       setShowSuccess({
+        saleId: result.id,
         saleNumber: result.saleNumber,
         total: totals.totalPaisa,
         paid: paid,
@@ -427,6 +457,13 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
       setTax('0');
       setPayments([{ method: 'cash', amount: '' }]);
       setErrorMsg('');
+
+      // Auto-print if configured — failure does not rollback sale
+      if (configuredPrinter?.autoPrintOnSale) {
+        setTimeout(() => {
+          handlePrintReceipt(result.id);
+        }, 500);
+      }
     } catch (e: any) {
       setErrorMsg(e.message || 'বিক্রয় সম্পন্ন করা যায়নি। কোনো হিসাব বা স্টক পরিবর্তন করা হয়নি।');
     }
@@ -476,10 +513,16 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
           <h1 className="text-h3 font-bold text-text-primary flex items-center gap-2">
             <ShoppingCart size={20} className="text-primary-500" />
             POS — বিক্রয় টার্মিনাল
+            {globalScanner.isScanning && <Badge variant="primary" className="animate-pulse">স্ক্যান হচ্ছে...</Badge>}
           </h1>
           {currentShift && (
             <Badge variant="default" className="ml-2">
               শিফট: {(currentShift as any).shift_number || 'খোলা'} • {(currentShift as any).opening_cash_paisa ? formatPaisa((currentShift as any).opening_cash_paisa) : ''}
+            </Badge>
+          )}
+          {configuredPrinter?.selectedPrinterName && (
+            <Badge variant="default" className="ml-1">
+              <Printer size={12} className="mr-1" /> {configuredPrinter.paperWidth} • {configuredPrinter.selectedPrinterName.slice(0, 20)}
             </Badge>
           )}
         </div>
@@ -502,7 +545,7 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
           {/* Barcode + Search */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-caption font-medium block mb-1">বারকোড স্ক্যান / প্রোডাক্ট খুঁজুন (F1)</label>
+              <label className="text-caption font-medium block mb-1">বারকোড স্ক্যান / প্রোডাক্ট খুঁজুন (F1) — {scannerConfig?.suffix || 'Enter'} সাফিক্স</label>
               <div className="relative">
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary" />
                 <Input
@@ -516,7 +559,7 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
                   autoFocus
                 />
               </div>
-              <p className="text-caption text-text-tertiary mt-1">স্ক্যানার HID কীবোর্ড হিসাবে কাজ করে, Enter সাপোর্টেড</p>
+              <p className="text-caption text-text-tertiary mt-1">USB HID / Bluetooth HID / Wireless HID — কীবোর্ড হিসাবে কাজ করে, দ্রুত বার্স্ট ডিটেকশন {scannerConfig?.charThresholdMs || 50}ms, {scannerConfig?.suffix || 'Enter'} সাফিক্স, ম্যানুয়াল এন্ট্রি সমর্থিত</p>
             </div>
             <div>
               <label className="text-caption font-medium block mb-1">প্রোডাক্ট সার্চ (ন্যূনতম ২ অক্ষর)</label>
@@ -578,7 +621,7 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
           <Card className="flex-1 flex flex-col overflow-hidden">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <CardTitle className="text-body flex items-center gap-2">
-                <ShoppingCart size={16} /> কার্ট ({cartItems.length} টি পণ্য) • F3 পরিমাণ, Del মুছুন
+                <ShoppingCart size={16} /> কার্ট ({cartItems.length} টি পণ্য) • F3 পরিমাণ, Del মুছুন • একই বারকোড স্ক্যান → পরিমাণ +১
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={handleClearCart} disabled={cartItems.length === 0}>
                 <X size={14} className="mr-1" /> খালি করুন F9
@@ -589,7 +632,7 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
                 <div className="flex flex-col items-center justify-center py-16 text-text-tertiary">
                   <ShoppingCart size={48} className="mb-3 opacity-20" />
                   <p className="text-body-sm">কার্ট খালি — বারকোড স্ক্যান করুন বা পণ্য খুঁজুন</p>
-                  <p className="text-caption mt-1">F1 স্ক্যান, F2 গ্রাহক, F5 হোল্ড, F7 পেমেন্ট</p>
+                  <p className="text-caption mt-1">F1 স্ক্যান, F2 গ্রাহক, F5 হোল্ড, F7 পেমেন্ট • স্ক্যানার: {scannerConfig?.suffix || 'Enter'} সাফিক্স, {scannerConfig?.charThresholdMs || 50}ms থ্রেশহোল্ড</p>
                 </div>
               ) : (
                 <table className="w-full">
@@ -669,6 +712,15 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
               <AlertTriangle size={16} className="text-danger-600 mt-0.5 shrink-0" />
               <p className="text-body-sm text-danger-600">{errorMsg}</p>
               <Button variant="ghost" size="icon" className="ml-auto h-6 w-6" onClick={() => setErrorMsg('')}>
+                <X size={14} />
+              </Button>
+            </div>
+          )}
+          {printStatus && (
+            <div className="bg-info-50 border border-info-200 rounded p-3 flex items-start gap-2">
+              <Printer size={16} className="text-info-600 mt-0.5 shrink-0" />
+              <p className="text-body-sm text-info-700">{printStatus}</p>
+              <Button variant="ghost" size="icon" className="ml-auto h-6 w-6" onClick={() => setPrintStatus('')}>
                 <X size={14} />
               </Button>
             </div>
@@ -872,14 +924,14 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
         </div>
       </Modal>
 
-      {/* Success Modal */}
+      {/* Success Modal — P4.2 enhanced with print handling, failure does NOT rollback */}
       <Modal open={!!showSuccess} onClose={() => setShowSuccess(null)} title="বিক্রয় সম্পন্ন" size="md">
         {showSuccess && (
           <div className="space-y-4 text-center">
             <CheckCircle size={48} className="mx-auto text-success-500" />
             <div>
               <p className="text-h2 font-mono">{showSuccess.saleNumber}</p>
-              <p className="text-body-sm text-text-secondary mt-1">বিক্রয় সফলভাবে সম্পন্ন হয়েছে</p>
+              <p className="text-body-sm text-text-secondary mt-1">বিক্রয় সফলভাবে সম্পন্ন হয়েছে — স্টক, পেমেন্ট, বকেয়া আপডেট হয়েছে</p>
             </div>
             <div className="bg-subtle p-3 rounded space-y-1 text-left">
               <div className="flex justify-between text-body-sm"><span>মোট</span><span className="font-mono font-bold">{formatPaisa(showSuccess.total)}</span></div>
@@ -887,10 +939,18 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
               {showSuccess.change > 0 && <div className="flex justify-between text-success-600"><span>ফেরত</span><span className="font-mono font-bold">{formatPaisa(showSuccess.change)}</span></div>}
               {showSuccess.due > 0 && <div className="flex justify-between text-danger-600"><span>বাকি</span><span className="font-mono font-bold">{formatPaisa(showSuccess.due)}</span></div>}
             </div>
+            {printStatus && (
+              <div className={`p-2 rounded text-body-sm border ${printStatus.includes('সফল') ? 'bg-success-50 border-success-200 text-success-700' : 'bg-warning-50 border-warning-200 text-warning-700'}`}>
+                {printStatus}
+              </div>
+            )}
             <div className="flex gap-2">
-              <Button variant="secondary" className="flex-1" onClick={() => setShowSuccess(null)}><Printer size={16} className="mr-1" /> রসিদ প্রিন্ট</Button>
+              <Button variant="secondary" className="flex-1" onClick={() => handlePrintReceipt(showSuccess.saleId)} loading={printReceiptMut.isPending}>
+                <Printer size={16} className="mr-1" /> রসিদ প্রিন্ট ({configuredPrinter?.paperWidth || '80mm'})
+              </Button>
               <Button className="flex-1" onClick={() => { setShowSuccess(null); barcodeInputRef.current?.focus(); }}>নতুন বিক্রয়</Button>
             </div>
+            <p className="text-caption text-text-tertiary">প্রিন্ট ব্যর্থ হলেও বিক্রয় রেকর্ড থাকবে, আবার প্রিন্ট করতে পারবেন — কোনো ডুপ্লিকেট বিক্রয়/পেমেন্ট তৈরি হবে না</p>
           </div>
         )}
       </Modal>
@@ -914,7 +974,7 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
       </Modal>
 
       {/* Help Modal */}
-      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="POS শর্টকাট" size="md">
+      <Modal open={showHelp} onClose={() => setShowHelp(false)} title="POS শর্টকাট — P4.2 Hardware" size="md">
         <div className="space-y-2 text-body-sm">
           <div className="grid grid-cols-2 gap-2">
             <div className="flex justify-between border-b py-1"><span>F1</span><span>বারকোড ফোকাস</span></div>
@@ -930,7 +990,15 @@ export const POSScreen: React.FC<{ businessId: string }> = ({ businessId }) => {
             <div className="flex justify-between border-b py-1"><span>Esc</span><span>বন্ধ করুন</span></div>
             <div className="flex justify-between border-b py-1"><span>Shift+?</span><span>সাহায্য</span></div>
           </div>
-          <p className="text-caption text-text-tertiary mt-3">বারকোড স্ক্যানার USB HID কীবোর্ড হিসাবে কাজ করে, দ্রুত বার্স্ট ডিটেকশন, Enter সাপোর্টেড</p>
+          <div className="bg-subtle p-2 rounded text-caption space-y-1">
+            <p className="font-medium">P4.2 Hardware:</p>
+            <p>• বারকোড স্ক্যানার: USB HID / Bluetooth HID / Wireless HID — কীবোর্ড wedge, {scannerConfig?.suffix || 'Enter'} সাফিক্স, দ্রুত বার্স্ট &lt;{scannerConfig?.charThresholdMs || 50}ms, ম্যানুয়াল এন্ট্রি সমর্থিত</p>
+            <p>• একই বারকোড বারবার স্ক্যান → পরিমাণ +১</p>
+            <p>• অজানা বারকোড: “এই বারকোডের কোনো পণ্য পাওয়া যায়নি।”</p>
+            <p>• নিষ্ক্রিয় পণ্য: বিক্রয়যোগ্য নয় — কার্টে যোগ হবে না</p>
+            <p>• রসিদ প্রিন্ট: {configuredPrinter?.paperWidth || '80mm'} / 58mm / A4, বাংলা Noto Sans, HTML প্রিন্ট পথ (ESC/POS raw নয়)</p>
+            <p>• প্রিন্ট ব্যর্থ হলেও বিক্রয়, স্টক, পেমেন্ট অপরিবর্তিত — পুনরায় প্রিন্ট নিরাপদ, ডুপ্লিকেট তৈরি করে না</p>
+          </div>
         </div>
       </Modal>
     </div>

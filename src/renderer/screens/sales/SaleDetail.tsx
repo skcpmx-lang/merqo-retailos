@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useSale, useCancelSale, useSaleReturn } from '../../hooks/useSales';
+import { useConfiguredPrinter, usePrintReceipt, usePrintInvoice, useReprintReceipt } from '../../hooks/useHardware';
 import { Button } from '../../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
-import { ArrowLeft, XCircle, Undo2 } from 'lucide-react';
+import { ArrowLeft, XCircle, Undo2, Printer, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 
 function formatPaisa(paisa: number): string {
   return `৳ ${(paisa / 100).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,6 +30,10 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
   const { data, isLoading } = useSale(saleId);
   const cancelMut = useCancelSale();
   const returnMut = useSaleReturn();
+  const { data: configuredPrinter } = useConfiguredPrinter();
+  const printReceiptMut = usePrintReceipt();
+  const printInvoiceMut = usePrintInvoice();
+  const reprintMut = useReprintReceipt();
 
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -36,6 +41,7 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
   const [returnItems, setReturnItems] = useState<{ productId: string; quantity: string; reason?: string }[]>([]);
   const [returnReason, setReturnReason] = useState('');
   const [refundMethod, setRefundMethod] = useState('cash');
+  const [printMsg, setPrintMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   if (isLoading) {
     return <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>;
@@ -90,6 +96,43 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
     setReturnItems([...returnItems, { productId, quantity: '1' }]);
   };
 
+  const handlePrint = async (type: 'receipt' | 'invoice' | 'reprint') => {
+    try {
+      setPrintMsg(null);
+      let result: any;
+      if (type === 'receipt') {
+        result = await printReceiptMut.mutateAsync({
+          saleId: sale.id,
+          printerName: configuredPrinter?.selectedPrinterName || undefined,
+          paperWidth: configuredPrinter?.paperWidth || '80mm',
+          copies: configuredPrinter?.copies || 1,
+        });
+      } else if (type === 'invoice') {
+        result = await printInvoiceMut.mutateAsync({
+          saleId: sale.id,
+          printerName: configuredPrinter?.a4PrinterName || configuredPrinter?.selectedPrinterName || undefined,
+          copies: 1,
+        });
+      } else {
+        result = await reprintMut.mutateAsync({
+          saleId: sale.id,
+          printerName: configuredPrinter?.selectedPrinterName || undefined,
+          paperWidth: configuredPrinter?.paperWidth || '80mm',
+          copies: 1,
+        });
+      }
+
+      if (result.success) {
+        setPrintMsg({ type: 'success', text: result.messageBn || 'প্রিন্ট সফল' });
+      } else {
+        setPrintMsg({ type: 'error', text: result.messageBn || 'প্রিন্ট ব্যর্থ, কিন্তু বিক্রয় রেকর্ড অপরিবর্তিত' });
+      }
+      setTimeout(() => setPrintMsg(null), 4000);
+    } catch (e: any) {
+      setPrintMsg({ type: 'error', text: e.message || 'রসিদ প্রিন্ট করা যায়নি। প্রিন্টার পরীক্ষা করে আবার চেষ্টা করুন।' });
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-6xl">
       <div className="flex items-center gap-3">
@@ -99,12 +142,35 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
           <p className="text-body-sm text-text-secondary">{formatDate(sale.saleDate)} • {STATUS_LABEL[sale.status] || sale.status}</p>
         </div>
         <Badge variant={sale.status === 'paid' ? 'success' : sale.status === 'partially_paid' ? 'warning' : 'default'}>{STATUS_LABEL[sale.status] || sale.status}</Badge>
+        <Button variant="secondary" size="sm" onClick={() => handlePrint('receipt')} loading={printReceiptMut.isPending}>
+          <Printer size={14} className="mr-1" /> রসিদ {configuredPrinter?.paperWidth || '80mm'}
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => handlePrint('reprint')} loading={reprintMut.isPending}>
+          <Printer size={14} className="mr-1" /> পুনরায় প্রিন্ট
+        </Button>
+        <Button variant="secondary" size="sm" onClick={() => handlePrint('invoice')} loading={printInvoiceMut.isPending}>
+          <FileText size={14} className="mr-1" /> A4 ইনভয়েস
+        </Button>
         {sale.status !== 'cancelled' && sale.status !== 'voided' && sale.status !== 'refunded' && (
           <>
             <Button variant="secondary" size="sm" onClick={() => setShowReturn(true)}><Undo2 size={14} className="mr-1" /> ফেরত</Button>
             <Button variant="danger" size="sm" onClick={() => setShowCancel(true)}><XCircle size={14} className="mr-1" /> বাতিল</Button>
           </>
         )}
+      </div>
+
+      {printMsg && (
+        <div className={`p-3 rounded border flex items-start gap-2 ${printMsg.type === 'success' ? 'bg-success-50 border-success-200 text-success-700' : 'bg-danger-50 border-danger-200 text-danger-700'}`}>
+          {printMsg.type === 'success' ? <CheckCircle size={16} className="mt-0.5" /> : <AlertTriangle size={16} className="mt-0.5" />}
+          <span className="text-body-sm">{printMsg.text}</span>
+        </div>
+      )}
+
+      <div className="bg-info-50 border border-info-200 rounded p-3 text-caption">
+        <p className="font-medium">P4.2 প্রিন্ট নিরাপত্তা:</p>
+        <p>• রসিদ/ইনভয়েস প্রিন্ট বা পুনরায় প্রিন্ট কখনো নতুন বিক্রয়, পেমেন্ট, স্টক, গ্রাহক বকেয়া তৈরি করবে না — শুধু প্রিন্ট + অডিট লগ</p>
+        <p>• প্রিন্ট ব্যর্থ হলেও বিক্রয় রেকর্ড, স্টক, পেমেন্ট অপরিবর্তিত থাকবে — আবার প্রিন্ট করতে পারবেন</p>
+        <p>• দ্রুত ডাবল-ক্লিক প্রিন্ট শারীরিকভাবে ২টি রসিদ দিতে পারে কিন্তু আর্থিক ডেটা ডুপ্লিকেট হবে না</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -123,7 +189,7 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
         </Card>
 
         <Card className="col-span-2">
-          <CardHeader className="pb-2"><CardTitle className="text-body-sm">পণ্য তালিকা</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-body-sm">পণ্য তালিকা — বাংলা নাম wrap, পরিমাণ/দাম ডানদিকে</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-auto">
               <table className="w-full">
@@ -139,7 +205,7 @@ export const SaleDetail: React.FC<{ saleId: string; businessId: string; onBack: 
                 <tbody>
                   {items.map((it: any) => (
                     <tr key={it.id} className="border-b border-border">
-                      <td className="px-3 py-2 text-body-sm">{it.productNameSnapshot || it.productId.slice(0, 8)}<br /><span className="text-caption text-text-tertiary">{it.quantityMilli / 1000} × {formatPaisa(it.unitPricePaisa)}</span></td>
+                      <td className="px-3 py-2 text-body-sm"><span className="font-medium" style={{ wordBreak: 'break-word' }}>{it.productNameSnapshot || it.productId.slice(0, 8)}</span><br /><span className="text-caption text-text-tertiary">{it.quantityMilli / 1000} × {formatPaisa(it.unitPricePaisa)}</span></td>
                       <td className="px-3 py-2 text-right font-mono text-body-sm">{it.quantityMilli / 1000} ({it.baseQuantityMilli / 1000} বেস)</td>
                       <td className="px-3 py-2 text-right font-mono text-body-sm">{formatPaisa(it.unitPricePaisa)}<br /><span className="text-caption text-text-tertiary">{formatPaisa(it.costPerUnitPaisa)} কস্ট</span></td>
                       <td className="px-3 py-2 text-right font-mono text-body-sm font-medium">{formatPaisa(it.lineTotalPaisa)}</td>

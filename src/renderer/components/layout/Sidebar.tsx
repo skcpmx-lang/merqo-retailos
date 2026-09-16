@@ -57,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, activeKey
     { key: 'products', labelKey: 'products', icon: <Package size={20} />, disabled: true, comingSoon: true },
     { key: 'inventory', labelKey: 'inventory', icon: <Database size={20} />, disabled: true, comingSoon: true },
     { key: 'reports', labelKey: 'reports', icon: <BarChart3 size={20} />, disabled: true, comingSoon: true },
-    { key: 'hardware', labelKey: 'hardware', icon: <Printer size={20} />, disabled: true, comingSoon: true },
+    { key: 'hardware', labelKey: 'hardware', icon: <Printer size={20} />, active: activeKey === 'hardware' },
     { key: 'users', labelKey: 'users', icon: <Shield size={20} />, disabled: true, comingSoon: true },
     { key: 'settings', labelKey: 'settings', icon: <Settings size={20} />, disabled: true, comingSoon: true },
   ];
