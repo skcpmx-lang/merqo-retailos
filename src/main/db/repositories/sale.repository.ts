@@ -272,7 +272,7 @@ export class SaleRepository extends BaseRepository {
   }
 
   getNextSaleNumber(businessId: string): string {
-    const row = this.db.prepare(`SELECT sale_number FROM sales WHERE business_id = ? ORDER BY created_at DESC LIMIT 1`).get(businessId) as { sale_number: string } | undefined;
+    const row = this.db.prepare(`SELECT sale_number FROM sales WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1`).get(businessId) as { sale_number: string } | undefined;
     if (!row) return 'SAL-00001';
 
     const match = row.sale_number.match(/SAL-(\d+)/);
@@ -484,7 +484,7 @@ export class SalePaymentRepository extends BaseRepository {
   }
 
   getNextPaymentNumber(businessId: string): string {
-    const row = this.db.prepare('SELECT payment_number FROM sale_payments WHERE business_id = ? AND payment_number IS NOT NULL ORDER BY created_at DESC LIMIT 1').get(businessId) as { payment_number: string } | undefined;
+    const row = this.db.prepare('SELECT payment_number FROM sale_payments WHERE business_id = ? AND payment_number IS NOT NULL ORDER BY created_at DESC, rowid DESC LIMIT 1').get(businessId) as { payment_number: string } | undefined;
     if (!row) return 'SPAY-00001';
     const match = row.payment_number.match(/SPAY-(\d+)/);
     if (!match) return `SPAY-${Date.now().toString().slice(-5)}`;
@@ -580,7 +580,7 @@ export class SaleReturnRepository extends BaseRepository {
   }
 
   getNextReturnNumber(businessId: string): string {
-    const row = this.db.prepare('SELECT return_number FROM sale_returns WHERE business_id = ? ORDER BY created_at DESC LIMIT 1').get(businessId) as { return_number: string } | undefined;
+    const row = this.db.prepare('SELECT return_number FROM sale_returns WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(businessId) as { return_number: string } | undefined;
     if (!row) return 'SRET-00001';
     const match = row.return_number.match(/SRET-(\d+)/);
     if (!match) return `SRET-${Date.now().toString().slice(-5)}`;

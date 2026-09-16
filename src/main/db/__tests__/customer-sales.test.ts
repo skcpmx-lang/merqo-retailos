@@ -298,7 +298,7 @@ describe('Phase 3B Customer & Sales', () => {
     due = customerTxRepo.getCurrentDue(customer.id);
     expect(due).toBe(96000); // 120000 - 24000
 
-    let level = stockLevelRepo.findByProduct(product.id);
+    const level = stockLevelRepo.findByProduct(product.id);
     expect(level!.quantityMilli).toBe(92000); // 100000 - 10000 + 2000
 
     // Over-return should fail

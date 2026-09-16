@@ -235,7 +235,7 @@ export class PurchaseRepository extends BaseRepository {
 
   getNextPurchaseNumber(businessId: string): string {
     // Find max number with pattern PUR-XXXXX
-    const row = this.db.prepare(`SELECT purchase_number FROM purchases WHERE business_id = ? ORDER BY created_at DESC LIMIT 1`).get(businessId) as { purchase_number: string } | undefined;
+    const row = this.db.prepare(`SELECT purchase_number FROM purchases WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1`).get(businessId) as { purchase_number: string } | undefined;
     if (!row) return 'PUR-00001';
 
     const match = row.purchase_number.match(/PUR-(\d+)/);
@@ -421,7 +421,7 @@ export class PurchasePaymentRepository extends BaseRepository {
   }
 
   getNextPaymentNumber(businessId: string): string {
-    const row = this.db.prepare('SELECT payment_number FROM purchase_payments WHERE business_id = ? ORDER BY created_at DESC LIMIT 1').get(businessId) as { payment_number: string } | undefined;
+    const row = this.db.prepare('SELECT payment_number FROM purchase_payments WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(businessId) as { payment_number: string } | undefined;
     if (!row) return 'PPAY-00001';
     const match = row.payment_number.match(/PPAY-(\d+)/);
     if (!match) return `PPAY-${Date.now().toString().slice(-5)}`;
@@ -510,7 +510,7 @@ export class PurchaseReturnRepository extends BaseRepository {
   }
 
   getNextReturnNumber(businessId: string): string {
-    const row = this.db.prepare('SELECT return_number FROM purchase_returns WHERE business_id = ? ORDER BY created_at DESC LIMIT 1').get(businessId) as { return_number: string } | undefined;
+    const row = this.db.prepare('SELECT return_number FROM purchase_returns WHERE business_id = ? ORDER BY created_at DESC, rowid DESC LIMIT 1').get(businessId) as { return_number: string } | undefined;
     if (!row) return 'PRET-00001';
     const match = row.return_number.match(/PRET-(\d+)/);
     if (!match) return `PRET-${Date.now().toString().slice(-5)}`;

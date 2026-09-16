@@ -726,6 +726,141 @@ export function registerIpcHandlers() {
     return repo.findByBusiness(businessId);
   });
 
+  // POS — Barcode & Product
+  createHandler(IPC_CHANNELS.POS_PRODUCT_BY_BARCODE, async (_event, payload: { businessId: string; barcode: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { ProductRepository } = require('../db/repositories/product.repository');
+    const { StockLevelRepository } = require('../db/repositories/inventory.repository');
+    const { UnitRepository } = require('../db/repositories/unit.repository');
+    const productRepo = new ProductRepository(db);
+    const stockRepo = new StockLevelRepository(db);
+    const unitRepo = new UnitRepository(db);
+
+    const barcode = (payload.barcode || '').trim();
+    if (!barcode) throw new AppError({ code: 'VALIDATION_ERROR', message: 'Barcode required', messageBn: 'বারকোড প্রয়োজন', statusCode: 400 });
+
+    const results = productRepo.findByBarcodeAll(barcode);
+    if (!results || results.length === 0) {
+      throw new AppError({ code: 'NOT_FOUND', message: 'Product not found', messageBn: 'পণ্যটি খুঁজে পাওয়া যায়নি।', statusCode: 404 });
+    }
+
+    // Enrich with stock and unit
+    return results.map((r: any) => {
+      const stock = stockRepo.findByProductAndLocation(r.product.id, 'main');
+      const unit = r.barcodeDetail?.unitId ? unitRepo.findById(r.barcodeDetail.unitId) : unitRepo.findById(r.product.saleUnitId || r.product.baseUnitId);
+      return {
+        product: r.product,
+        barcodeDetail: r.barcodeDetail,
+        stockMilli: stock?.quantityMilli || 0,
+        unit: unit || null,
+      };
+    });
+  });
+
+  createHandler(IPC_CHANNELS.POS_PRODUCT_SEARCH, async (_event, payload: { businessId: string; query: string; limit?: number }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { ProductRepository } = require('../db/repositories/product.repository');
+    const { StockLevelRepository } = require('../db/repositories/inventory.repository');
+    const productRepo = new ProductRepository(db);
+    const stockRepo = new StockLevelRepository(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    const query = (payload.query || '').trim();
+    if (query.length < 2) return [];
+
+    const products = productRepo.search(businessId, query, payload.limit || 20);
+    return products.map((p: any) => {
+      const stock = stockRepo.findByProductAndLocation(p.id, 'main');
+      return {
+        ...p,
+        stockMilli: stock?.quantityMilli || 0,
+      };
+    });
+  });
+
+  createHandler(IPC_CHANNELS.POS_STOCK_LEVEL, async (_event, payload: { productId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { StockLevelRepository } = require('../db/repositories/inventory.repository');
+    const stockRepo = new StockLevelRepository(db);
+    return stockRepo.findByProductAndLocation(payload.productId, 'main');
+  });
+
+  // POS — Held Sales
+  createHandler(IPC_CHANNELS.POS_HOLD_SALE, async (_event, payload: any) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { HeldSaleService } = require('../services/held-sale.service');
+    const service = new HeldSaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('pos.sell') && !currentUser.permissions.includes('sales.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'হোল্ড করার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.hold({
+      businessId: payload.businessId || currentUser?.businessId,
+      customerId: payload.customerId || null,
+      cart: payload.cart,
+      notes: payload.notes,
+      createdBy: currentUser?.userId,
+      expiresAt: payload.expiresAt,
+    });
+  });
+
+  createHandler(IPC_CHANNELS.POS_HELD_SALES_LIST, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { HeldSaleService } = require('../services/held-sale.service');
+    const service = new HeldSaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    return service.list(businessId);
+  });
+
+  createHandler(IPC_CHANNELS.POS_HELD_SALE_GET, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { HeldSaleService } = require('../services/held-sale.service');
+    const service = new HeldSaleService(db);
+    const result = service.getById(payload.id);
+    if (!result) throw new AppError({ code: 'NOT_FOUND', message: 'Held sale not found', messageBn: 'হোল্ড করা বিক্রয় পাওয়া যায়নি', statusCode: 404 });
+    return result;
+  });
+
+  createHandler(IPC_CHANNELS.POS_HELD_SALE_CANCEL, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { HeldSaleService } = require('../services/held-sale.service');
+    const service = new HeldSaleService(db);
+    const currentUser = sessionManager.getCurrentUser();
+    return service.cancel(payload.id, currentUser?.userId);
+  });
+
+  createHandler(IPC_CHANNELS.POS_HELD_SALE_RESUME, async (_event, payload: { id: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const { HeldSaleService } = require('../services/held-sale.service');
+    const service = new HeldSaleService(db);
+    const held = service.resume(payload.id);
+    // Delete after resume
+    service.deleteAfterResume(payload.id);
+    return held;
+  });
+
+  createHandler(IPC_CHANNELS.POS_CURRENT_SHIFT, async (_event, payload: { businessId: string }) => {
+    const { getConnection } = require('../db/connection');
+    const db = getConnection();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    try {
+      const row = db.prepare('SELECT * FROM shifts WHERE business_id = ? AND status = ? ORDER BY opened_at DESC LIMIT 1').get(businessId, 'open') as any;
+      return row || null;
+    } catch {
+      return null;
+    }
+  });
+
   // Hardware placeholders (future)
   createHandler(IPC_CHANNELS.HARDWARE_GET_PRINTERS, async () => {
     return { printers: [], message: 'Not implemented in Phase 1' };

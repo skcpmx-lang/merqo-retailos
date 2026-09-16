@@ -11,9 +11,10 @@ import { CustomerDetail } from './screens/customers/CustomerDetail';
 import { SaleList } from './screens/sales/SaleList';
 import { SaleForm } from './screens/sales/SaleForm';
 import { SaleDetail } from './screens/sales/SaleDetail';
+import { POSScreen } from './screens/pos/POSScreen';
 import './lib/i18n';
 
-type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail';
+type Screen = 'dashboard' | 'suppliers' | 'supplier-detail' | 'purchases' | 'purchase-form' | 'purchase-detail' | 'customers' | 'customer-detail' | 'sales' | 'sale-form' | 'sale-detail' | 'pos';
 
 export const App: React.FC = () => {
   const [ready, setReady] = useState(false);
@@ -75,7 +76,7 @@ export const App: React.FC = () => {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-body text-text-secondary">অ্যাপ লোড হচ্ছে...</p>
-          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3B Sales & Customer</p>
+          <p className="text-caption text-text-tertiary">MERQO RetailOS — Phase 3C POS</p>
         </div>
       </div>
     );
@@ -163,6 +164,8 @@ export const App: React.FC = () => {
         return (
           <SaleDetail saleId={selectedSaleId} businessId={businessId} onBack={() => setActiveKey('sales')} />
         );
+      case 'pos':
+        return <POSScreen businessId={businessId} />;
       default:
         return <Dashboard />;
     }

@@ -43,12 +43,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children, activeKey, onNavig
     <div className="flex w-screen h-screen overflow-hidden bg-canvas">
       <Sidebar collapsed={collapsed} onToggle={handleToggle} activeKey={activeKey} onNavigate={onNavigate} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar title={titleMap[activeKey] || t('dashboard')} subtitle="MERQO RetailOS — Phase 3B Sales & Customer" notificationCount={0} />
+        <Topbar title={titleMap[activeKey] || t('dashboard')} subtitle="MERQO RetailOS — Phase 3C POS" notificationCount={0} />
         <main className="flex-1 overflow-auto p-6 bg-canvas">
           {children}
         </main>
         <footer className="h-6 px-4 bg-surface border-t border-border flex items-center justify-between text-caption text-text-tertiary shrink-0">
-          <span>MERQO RetailOS • Phase 3B Sales & Customer • Light Mode Only</span>
+          <span>MERQO RetailOS • Phase 3C POS • Light Mode Only</span>
           <span className="hidden md:inline">1280x720+ • Offline-First • Windows Desktop</span>
         </footer>
       </div>

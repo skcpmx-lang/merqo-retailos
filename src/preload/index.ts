@@ -124,6 +124,19 @@ const merqoAPI = {
     mfsAccounts: (businessId: string) => invoke('finance:mfsAccountList', { businessId }),
   },
 
+  // POS
+  pos: {
+    productByBarcode: (payload: { businessId: string; barcode: string }) => invoke('pos:productByBarcode', payload),
+    productSearch: (payload: { businessId: string; query: string; limit?: number }) => invoke('pos:productSearch', payload),
+    stockLevel: (payload: { productId: string }) => invoke('pos:stockLevel', payload),
+    holdSale: (payload: any) => invoke('pos:holdSale', payload),
+    heldSalesList: (businessId: string) => invoke('pos:heldSalesList', { businessId }),
+    heldSaleGet: (id: string) => invoke('pos:heldSaleGet', { id }),
+    heldSaleCancel: (id: string) => invoke('pos:heldSaleCancel', { id }),
+    heldSaleResume: (id: string) => invoke('pos:heldSaleResume', { id }),
+    currentShift: (businessId: string) => invoke('pos:currentShift', { businessId }),
+  },
+
   // Hardware (future, but expose now for diagnostics)
   hardware: {
     getPrinters: () => invoke('hardware:getPrinters'),

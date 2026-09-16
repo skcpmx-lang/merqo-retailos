@@ -88,6 +88,17 @@ interface Window {
       list: (businessId: string) => Promise<any>;
       conversions: (businessId: string) => Promise<any>;
     };
+    pos: {
+      productByBarcode: (payload: { businessId: string; barcode: string }) => Promise<any>;
+      productSearch: (payload: { businessId: string; query: string; limit?: number }) => Promise<any>;
+      stockLevel: (payload: { productId: string }) => Promise<any>;
+      holdSale: (payload: any) => Promise<any>;
+      heldSalesList: (businessId: string) => Promise<any>;
+      heldSaleGet: (id: string) => Promise<any>;
+      heldSaleCancel: (id: string) => Promise<any>;
+      heldSaleResume: (id: string) => Promise<any>;
+      currentShift: (businessId: string) => Promise<any>;
+    };
     invoke: (channel: string, payload?: unknown) => Promise<any>;
   };
 }

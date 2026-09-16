@@ -157,6 +157,72 @@ export class ProductRepository extends BaseRepository {
     return row ? this.mapRow(row) : null;
   }
 
+  findByBarcodeWithDetails(barcode: string): { product: Product; barcodeDetail: ProductBarcode | null } | null {
+    // Primary barcode
+    const productRow = this.db.prepare('SELECT * FROM products WHERE barcode = ? AND deleted_at IS NULL').get(barcode) as any;
+    if (productRow) {
+      return { product: this.mapRow(productRow), barcodeDetail: null };
+    }
+
+    // Secondary barcodes with details
+    const row = this.db.prepare(`
+      SELECT p.*, pb.id as pb_id, pb.unit_id as pb_unit_id, pb.quantity_milli as pb_qty, pb.is_primary as pb_primary, pb.created_at as pb_created
+      FROM products p
+      JOIN product_barcodes pb ON pb.product_id = p.id
+      WHERE pb.barcode = ? AND p.deleted_at IS NULL
+      LIMIT 1
+    `).get(barcode) as any;
+
+    if (!row) return null;
+
+    const product = this.mapRow(row);
+    const barcodeDetail: ProductBarcode = {
+      id: row.pb_id,
+      productId: row.id,
+      unitId: row.pb_unit_id,
+      barcode,
+      quantityMilli: row.pb_qty ?? 1000,
+      isPrimary: !!row.pb_primary,
+      createdAt: row.pb_created,
+    };
+
+    return { product, barcodeDetail };
+  }
+
+  findByBarcodeAll(barcode: string): { product: Product; barcodeDetail: ProductBarcode | null }[] {
+    const results: { product: Product; barcodeDetail: ProductBarcode | null }[] = [];
+
+    // Primary
+    const primaryRows = this.db.prepare('SELECT * FROM products WHERE barcode = ? AND deleted_at IS NULL').all(barcode) as any[];
+    for (const r of primaryRows) {
+      results.push({ product: this.mapRow(r), barcodeDetail: null });
+    }
+
+    // Secondary
+    const secondaryRows = this.db.prepare(`
+      SELECT p.*, pb.id as pb_id, pb.unit_id as pb_unit_id, pb.quantity_milli as pb_qty, pb.is_primary as pb_primary, pb.created_at as pb_created, pb.barcode as pb_barcode
+      FROM products p
+      JOIN product_barcodes pb ON pb.product_id = p.id
+      WHERE pb.barcode = ? AND p.deleted_at IS NULL
+    `).all(barcode) as any[];
+
+    for (const row of secondaryRows) {
+      const product = this.mapRow(row);
+      const barcodeDetail: ProductBarcode = {
+        id: row.pb_id,
+        productId: row.id,
+        unitId: row.pb_unit_id,
+        barcode: row.pb_barcode,
+        quantityMilli: row.pb_qty ?? 1000,
+        isPrimary: !!row.pb_primary,
+        createdAt: row.pb_created,
+      };
+      results.push({ product, barcodeDetail });
+    }
+
+    return results;
+  }
+
   findByBusiness(businessId: string, limit = 100, offset = 0): Product[] {
     const rows = this.db.prepare('SELECT * FROM products WHERE business_id = ? AND deleted_at IS NULL ORDER BY name LIMIT ? OFFSET ?').all(businessId, limit, offset) as any[];
     return rows.map(r => this.mapRow(r));

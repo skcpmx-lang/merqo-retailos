@@ -22,5 +22,17 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
+    hmr: { clientPort: 443 },
+    cors: true,
+    // @ts-ignore vite 5 compatibility: allow all hosts for preview proxy
+    allowedHosts: true as any,
+    headers: {
+      'X-Frame-Options': 'ALLOWALL',
+    },
+  },
+  preview: {
+    host: '0.0.0.0',
+    cors: true,
   },
 });

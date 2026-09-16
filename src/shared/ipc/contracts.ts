@@ -92,6 +92,17 @@ export const IPC_CHANNELS = {
   BANK_ACCOUNT_LIST: 'finance:bankAccountList',
   MFS_ACCOUNT_LIST: 'finance:mfsAccountList',
 
+  // POS
+  POS_PRODUCT_BY_BARCODE: 'pos:productByBarcode',
+  POS_PRODUCT_SEARCH: 'pos:productSearch',
+  POS_HOLD_SALE: 'pos:holdSale',
+  POS_HELD_SALES_LIST: 'pos:heldSalesList',
+  POS_HELD_SALE_GET: 'pos:heldSaleGet',
+  POS_HELD_SALE_CANCEL: 'pos:heldSaleCancel',
+  POS_HELD_SALE_RESUME: 'pos:heldSaleResume',
+  POS_CURRENT_SHIFT: 'pos:currentShift',
+  POS_STOCK_LEVEL: 'pos:stockLevel',
+
   // Backup (future)
   BACKUP_CREATE: 'backup:create',
   BACKUP_LIST: 'backup:list',
