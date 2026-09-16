@@ -1404,6 +1404,114 @@ export function registerIpcHandlers() {
     return { found: true, barcode, products: enriched };
   });
 
+  // Backup — P4.3
+  createHandler(IPC_CHANNELS.BACKUP_CREATE, async (_event, payload: { type?: string; businessId?: string; notes?: string }) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('backup.create') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized to create backup', messageBn: 'ব্যাকআপ তৈরির অনুমতি নেই', statusCode: 403 });
+    }
+    return service.createBackup({
+      type: (payload.type as any) || 'manual',
+      businessId: payload.businessId || currentUser?.businessId,
+      userId: currentUser?.userId,
+      notes: payload.notes,
+    });
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_LIST, async () => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('backup.view') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'ব্যাকআপ দেখার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.listBackups();
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_VALIDATE, async (_event, payload: { filePath: string }) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('backup.view') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'অনুমতি নেই', statusCode: 403 });
+    }
+    return service.validateBackup(payload.filePath);
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_RESTORE, async (_event, payload: { filePath: string }) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('backup.restore') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized to restore', messageBn: 'পুনরুদ্ধারের অনুমতি নেই', statusCode: 403 });
+    }
+    return service.restoreBackup(payload.filePath, currentUser?.userId);
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_DELETE, async (_event, payload: { filePath: string }) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('backup.delete') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized to delete backup', messageBn: 'ব্যাকআপ মুছে ফেলার অনুমতি নেই', statusCode: 403 });
+    }
+    return service.deleteBackup(payload.filePath, currentUser?.userId);
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_GET_CONFIG, async () => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    return service.getConfig();
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_SAVE_CONFIG, async (_event, payload: any) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const currentUser = sessionManager.getCurrentUser();
+    if (currentUser && !currentUser.permissions.includes('settings.backup') && !currentUser.permissions.includes('settings.manage') && !currentUser.isOwner) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized', messageBn: 'সেটিংস পরিবর্তনের অনুমতি নেই', statusCode: 403 });
+    }
+    return service.saveConfig(payload);
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_GET_STATUS, async () => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    const list = await service.listBackups();
+    const config = service.getConfig();
+    const lastError = service.getLastError();
+    return {
+      totalBackups: list.totalCount,
+      totalSizeBytes: list.totalSizeBytes,
+      lastBackup: list.backups[0] || null,
+      config,
+      lastError,
+      backupsDir: service.getBackupsDir(),
+      dbPath: service.getDbPath(),
+    };
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_OPEN_FOLDER, async () => {
+    const { BackupService } = require('../backup/backup.service');
+    const { shell } = require('electron');
+    const service = BackupService.getInstance();
+    const dir = service.getBackupsDir();
+    try {
+      await shell.openPath(dir);
+      return { success: true, path: dir };
+    } catch (e) {
+      throw new AppError({ code: 'SYSTEM_ERROR', message: String(e), messageBn: 'ফোল্ডার খোলা যায়নি', statusCode: 500 });
+    }
+  });
+
+  createHandler(IPC_CHANNELS.BACKUP_GET_DETAILS, async (_event, payload: { filePath: string }) => {
+    const { BackupService } = require('../backup/backup.service');
+    const service = BackupService.getInstance();
+    return service.getBackupDetails(payload.filePath);
+  });
+
   logger.info('IPC handlers registered');
 }
 

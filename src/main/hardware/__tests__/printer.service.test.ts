@@ -32,23 +32,12 @@ vi.mock('../../logging/logger', () => ({
 
 import { getTestDb, seedBusiness } from '../../db/__tests__/test-helpers';
 import { PrinterService } from '../printer.service';
-import { getConnection as originalGetConnection } from '../../db/connection';
+import { setConnection, closeConnection } from '../../db/connection';
 import { ProductRepository } from '../../db/repositories/product.repository';
 import { StockLevelRepository } from '../../db/repositories/inventory.repository';
 import { SaleService } from '../../services/sale.service';
 import { CashAccountRepository } from '../../db/repositories/finance.repository';
 import { UnitRepository } from '../../db/repositories/unit.repository';
-
-// We will override getConnection via vi.mock for connection module
-vi.mock('../../db/connection', async () => {
-  const actual = await vi.importActual('../../db/connection') as any;
-  return {
-    ...actual,
-    getConnection: vi.fn(),
-  };
-});
-
-import { getConnection } from '../../db/connection';
 
 describe('Printer Service — P4.2', () => {
   let db: any;
@@ -57,13 +46,13 @@ describe('Printer Service — P4.2', () => {
   beforeEach(() => {
     db = getTestDb();
     seedBusiness(db, businessId);
-    (getConnection as any).mockReturnValue(db);
+    setConnection(db);
   });
 
   afterEach(() => {
+    try { closeConnection(); } catch {}
     try { db.close(); } catch {}
     vi.clearAllMocks();
-    (getConnection as any).mockReturnValue(db);
   });
 
   it('should have sensible default printer config', () => {
@@ -232,7 +221,6 @@ describe('Printer Service — P4.2', () => {
 
     const service = PrinterService.getInstance();
 
-    // Mock printHtml to avoid Electron
     const originalPrintHtml = (service as any).printHtml;
     (service as any).printHtml = async () => ({
       success: true,

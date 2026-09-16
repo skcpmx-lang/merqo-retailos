@@ -6,7 +6,7 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['src/main/db/__tests__/**', 'src/main/hardware/__tests__/**', 'node_modules'],
+    exclude: ['src/main/db/__tests__/**', 'src/main/hardware/__tests__/**', 'src/main/backup/__tests__/**', 'node_modules'],
     setupFiles: ['src/test/setup.ts'],
   },
   resolve: {

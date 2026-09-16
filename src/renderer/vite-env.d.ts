@@ -45,6 +45,18 @@ interface Window {
       getDiagnostics: () => Promise<any>;
       barcodeTest: (barcode: string) => Promise<any>;
     };
+    backup: {
+      create: (payload?: { type?: string; businessId?: string; notes?: string }) => Promise<any>;
+      list: () => Promise<any>;
+      validate: (filePath: string) => Promise<any>;
+      restore: (filePath: string) => Promise<any>;
+      delete: (filePath: string) => Promise<any>;
+      getConfig: () => Promise<any>;
+      saveConfig: (config: any) => Promise<any>;
+      getStatus: () => Promise<any>;
+      openFolder: () => Promise<any>;
+      getDetails: (filePath: string) => Promise<any>;
+    };
     supplier: {
       create: (payload: any) => Promise<any>;
       update: (payload: { id: string; data: any }) => Promise<any>;

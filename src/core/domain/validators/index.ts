@@ -240,9 +240,36 @@ export const ipcPayloadSchemas: Record<string, z.ZodSchema> = {
   'pos:currentShift': z.object({ businessId: z.string() }),
   'pos:stockLevel': z.object({ productId: z.string() }),
 
-  'backup:create': z.object({}).passthrough(),
+  // Backup P4.3
+  'backup:create': z.object({
+    type: z.enum(['manual', 'automatic', 'safety-pre-restore', 'auto-startup']).optional(),
+    businessId: z.string().min(10).max(64).optional(),
+    notes: z.string().max(500).optional(),
+  }).passthrough(),
   'backup:list': z.object({}),
-  'backup:restore': z.object({}).passthrough(),
+  'backup:validate': z.object({
+    filePath: z.string().min(1).max(500),
+  }),
+  'backup:restore': z.object({
+    filePath: z.string().min(1).max(500),
+  }),
+  'backup:delete': z.object({
+    filePath: z.string().min(1).max(500),
+  }),
+  'backup:getConfig': z.object({}),
+  'backup:saveConfig': z.object({
+    enabled: z.boolean().optional(),
+    autoBackupOnStartup: z.boolean().optional(),
+    autoBackupOnClose: z.boolean().optional(),
+    retentionCount: z.number().int().min(1).max(100).optional(),
+    retentionDays: z.number().int().min(0).max(365).optional(),
+    backupPath: z.string().max(500).optional(),
+  }).passthrough(),
+  'backup:getStatus': z.object({}),
+  'backup:openFolder': z.object({}),
+  'backup:getDetails': z.object({
+    filePath: z.string().min(1).max(500),
+  }),
   'log:getRecent': z.object({}).passthrough(),
 } as const;
 

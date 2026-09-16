@@ -197,6 +197,20 @@ const merqoAPI = {
     barcodeTest: (barcode: string) => invoke('hardware:barcodeTest', { barcode }),
   },
 
+  // Backup — P4.3
+  backup: {
+    create: (payload?: { type?: string; businessId?: string; notes?: string }) => invoke('backup:create', payload || {}),
+    list: () => invoke('backup:list'),
+    validate: (filePath: string) => invoke('backup:validate', { filePath }),
+    restore: (filePath: string) => invoke('backup:restore', { filePath }),
+    delete: (filePath: string) => invoke('backup:delete', { filePath }),
+    getConfig: () => invoke('backup:getConfig'),
+    saveConfig: (config: any) => invoke('backup:saveConfig', config),
+    getStatus: () => invoke('backup:getStatus'),
+    openFolder: () => invoke('backup:openFolder'),
+    getDetails: (filePath: string) => invoke('backup:getDetails', { filePath }),
+  },
+
   // Generic invoke with validation (for internal use, but still allowlisted)
   invoke: (channel: IpcChannel, payload?: unknown) => invoke(channel, payload),
 };

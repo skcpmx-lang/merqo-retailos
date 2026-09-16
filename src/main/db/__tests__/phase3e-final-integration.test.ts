@@ -580,6 +580,9 @@ describe('Phase 3E — Final Integration + E2E Hardening', () => {
     expect(mfsInv.valid).toBe(true);
 
     // === 15. Shift Lifecycle ===
+    // Ensure shift open timestamp is strictly after previous mfs_cash_out to avoid same-ms collision (500000 counted as inflow)
+    const delayUntil = Date.now() + 5;
+    while (Date.now() < delayUntil) { /* busy wait 5ms */ }
     const shift = shiftService.open({ businessId, cashAccountId: mainCash.id, openingCashPaisa: 1000000, openedByUserId: 'cashier1' });
     expect(shift.shiftNumber).toMatch(/SHIFT-/);
     expect(shift.status).toBe('open');

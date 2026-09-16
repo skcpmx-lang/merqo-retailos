@@ -5,10 +5,17 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/main/db/__tests__/**/*.{test,spec}.ts', 'src/main/hardware/__tests__/**/*.{test,spec}.ts'],
+    include: ['src/main/db/__tests__/**/*.{test,spec}.ts', 'src/main/hardware/__tests__/**/*.{test,spec}.ts', 'src/main/backup/__tests__/**/*.{test,spec}.ts'],
     exclude: ['node_modules'],
     setupFiles: [],
     testTimeout: 10000,
+    fileParallelism: false,
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      },
+    },
   },
   resolve: {
     alias: {

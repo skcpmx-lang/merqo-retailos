@@ -19,6 +19,8 @@ import {
   Receipt,
   ArrowLeftRight,
   Clock,
+  HardDrive,
+  Archive,
 } from 'lucide-react';
 
 interface NavItem {
@@ -58,6 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, activeKey
     { key: 'inventory', labelKey: 'inventory', icon: <Database size={20} />, disabled: true, comingSoon: true },
     { key: 'reports', labelKey: 'reports', icon: <BarChart3 size={20} />, disabled: true, comingSoon: true },
     { key: 'hardware', labelKey: 'hardware', icon: <Printer size={20} />, active: activeKey === 'hardware' },
+    { key: 'backup', labelKey: 'backup', icon: <HardDrive size={20} />, active: activeKey === 'backup' },
     { key: 'users', labelKey: 'users', icon: <Shield size={20} />, disabled: true, comingSoon: true },
     { key: 'settings', labelKey: 'settings', icon: <Settings size={20} />, disabled: true, comingSoon: true },
   ];

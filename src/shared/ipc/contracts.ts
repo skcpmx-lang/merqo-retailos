@@ -165,10 +165,17 @@ export const IPC_CHANNELS = {
   POS_CURRENT_SHIFT: 'pos:currentShift',
   POS_STOCK_LEVEL: 'pos:stockLevel',
 
-  // Backup (future)
+  // Backup — P4.3
   BACKUP_CREATE: 'backup:create',
   BACKUP_LIST: 'backup:list',
+  BACKUP_VALIDATE: 'backup:validate',
   BACKUP_RESTORE: 'backup:restore',
+  BACKUP_DELETE: 'backup:delete',
+  BACKUP_GET_CONFIG: 'backup:getConfig',
+  BACKUP_SAVE_CONFIG: 'backup:saveConfig',
+  BACKUP_GET_STATUS: 'backup:getStatus',
+  BACKUP_OPEN_FOLDER: 'backup:openFolder',
+  BACKUP_GET_DETAILS: 'backup:getDetails',
 
   // Logging
   LOG_GET_RECENT: 'log:getRecent',
