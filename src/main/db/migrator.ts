@@ -275,6 +275,7 @@ export class Migrator {
     let phase3aSql = '';
     let phase3bSql = '';
     let phase3dSql = '';
+    let phase44Sql = '';
     // Production paths: dist/main/db/migrations (copy:migrations), extraResources migrations (resourcesPath), and dev src
     let resourcesPath = '';
     try {
@@ -315,6 +316,13 @@ export class Migrator {
       path.join(process.cwd(), 'src/main/db/migrations/0005_phase3d_finance.sql'),
       path.join(process.cwd(), 'dist/main/db/migrations/0005_phase3d_finance.sql'),
     ];
+    const possiblePaths44 = [
+      path.join(__dirname, 'migrations', '0006_p4_4_reports_indexes.sql'),
+      path.join(__dirname, '../../main/db/migrations/0006_p4_4_reports_indexes.sql'),
+      path.join(resourcesPath, 'migrations', '0006_p4_4_reports_indexes.sql'),
+      path.join(process.cwd(), 'src/main/db/migrations/0006_p4_4_reports_indexes.sql'),
+      path.join(process.cwd(), 'dist/main/db/migrations/0006_p4_4_reports_indexes.sql'),
+    ];
 
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
@@ -344,6 +352,14 @@ export class Migrator {
       if (fs.existsSync(p)) {
         phase3dSql = fs.readFileSync(p, 'utf-8');
         logger.info(`Loaded Phase 3D schema from ${p}`);
+        break;
+      }
+    }
+
+    for (const p of possiblePaths44) {
+      if (fs.existsSync(p)) {
+        phase44Sql = fs.readFileSync(p, 'utf-8');
+        logger.info(`Loaded P4.4 reports indexes from ${p}`);
         break;
       }
     }
@@ -600,12 +616,30 @@ export class Migrator {
           logger.warn(`Phase 3D migration partial: ${String(e)}`);
         }
       }
+      if (phase44Sql) {
+        try {
+          const statements = phase44Sql.split(';').map(s => s.trim()).filter(s => s.length > 0);
+          for (const stmt of statements) {
+            try {
+              this.db.exec(stmt);
+            } catch (e) {
+              const msg = String(e);
+              if (!msg.includes('duplicate column') && !msg.includes('already exists')) {
+                logger.warn(`P4.4 statement failed: ${msg} | ${stmt.slice(0,100)}`);
+              }
+            }
+          }
+        } catch (e) {
+          logger.warn(`P4.4 migration partial: ${String(e)}`);
+        }
+      }
       // Record that phase2, phase3a, phase3b, phase3d migrations are applied for new DBs
       try {
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0002_phase2_full_schema', Date.now());
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0003_phase3a_purchasing', Date.now());
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0004_phase3b_sales_customer', Date.now());
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0005_phase3d_finance', Date.now());
+        this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0006_p4_4_reports_indexes', Date.now());
       } catch {}
       logger.info('Initial schema created (Phase 1 + Phase 2 + Phase 3A + Phase 3B + Phase 3D)');
       return { success: true };

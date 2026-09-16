@@ -160,7 +160,7 @@ describe('Printer Service — P4.2', () => {
     const saleService = new SaleService(db);
     const unitRepo = new UnitRepository(db);
 
-    let unit = db.prepare('SELECT id FROM units LIMIT 1').get() as any;
+    const unit = db.prepare('SELECT id FROM units LIMIT 1').get() as any;
     let unitId: string;
     if (unit) {
       unitId = unit.id;
@@ -270,7 +270,7 @@ describe('Printer Service — P4.2', () => {
 
     const productRepo = new ProductRepository(db);
     const unitRepo = new UnitRepository(db);
-    let unit = db.prepare('SELECT id FROM units LIMIT 1').get() as any;
+    const unit = db.prepare('SELECT id FROM units LIMIT 1').get() as any;
     let unitId: string;
     if (unit) {
       unitId = unit.id;

@@ -197,6 +197,35 @@ const merqoAPI = {
     barcodeTest: (barcode: string) => invoke('hardware:barcodeTest', { barcode }),
   },
 
+  // Reports — P4.4
+  report: {
+    salesSummary: (payload: any) => invoke('report:salesSummary', payload),
+    salesByProduct: (payload: any) => invoke('report:salesByProduct', payload),
+    salesByCategory: (payload: any) => invoke('report:salesByCategory', payload),
+    salesByCashier: (payload: any) => invoke('report:salesByCashier', payload),
+    salesByPayment: (payload: any) => invoke('report:salesByPayment', payload),
+    purchaseSummary: (payload: any) => invoke('report:purchaseSummary', payload),
+    purchaseBySupplier: (payload: any) => invoke('report:purchaseBySupplier', payload),
+    purchaseByProduct: (payload: any) => invoke('report:purchaseByProduct', payload),
+    inventoryStock: (payload: any) => invoke('report:inventoryStock', payload),
+    lowStock: (payload: any) => invoke('report:lowStock', payload),
+    stockValuation: (payload: any) => invoke('report:stockValuation', payload),
+    stockMovements: (payload: any) => invoke('report:stockMovements', payload),
+    customerDue: (payload: any) => invoke('report:customerDue', payload),
+    customerStatement: (payload: { customerId: string; fromDate?: number; toDate?: number }) => invoke('report:customerStatement', payload),
+    supplierPayable: (payload: any) => invoke('report:supplierPayable', payload),
+    supplierStatement: (payload: { supplierId: string; fromDate?: number; toDate?: number }) => invoke('report:supplierStatement', payload),
+    cash: (payload: { accountId: string; fromDate?: number; toDate?: number }) => invoke('report:cash', payload),
+    bank: (payload: { accountId: string; fromDate?: number; toDate?: number }) => invoke('report:bank', payload),
+    mfs: (payload: { accountId: string; fromDate?: number; toDate?: number }) => invoke('report:mfs', payload),
+    expenseSummary: (payload: any) => invoke('report:expenseSummary', payload),
+    expenseByCategory: (payload: any) => invoke('report:expenseByCategory', payload),
+    expenseList: (payload: any) => invoke('report:expenseList', payload),
+    shift: (payload: any) => invoke('report:shift', payload),
+    profitLoss: (payload: any) => invoke('report:profitLoss', payload),
+    dashboard: (payload: any) => invoke('report:dashboard', payload),
+  },
+
   // Backup — P4.3
   backup: {
     create: (payload?: { type?: string; businessId?: string; notes?: string }) => invoke('backup:create', payload || {}),

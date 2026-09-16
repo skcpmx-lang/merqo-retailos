@@ -177,6 +177,33 @@ export const IPC_CHANNELS = {
   BACKUP_OPEN_FOLDER: 'backup:openFolder',
   BACKUP_GET_DETAILS: 'backup:getDetails',
 
+  // Reports — P4.4
+  REPORT_SALES_SUMMARY: 'report:salesSummary',
+  REPORT_SALES_BY_PRODUCT: 'report:salesByProduct',
+  REPORT_SALES_BY_CATEGORY: 'report:salesByCategory',
+  REPORT_SALES_BY_CASHIER: 'report:salesByCashier',
+  REPORT_SALES_BY_PAYMENT: 'report:salesByPayment',
+  REPORT_PURCHASE_SUMMARY: 'report:purchaseSummary',
+  REPORT_PURCHASE_BY_SUPPLIER: 'report:purchaseBySupplier',
+  REPORT_PURCHASE_BY_PRODUCT: 'report:purchaseByProduct',
+  REPORT_INVENTORY_STOCK: 'report:inventoryStock',
+  REPORT_INVENTORY_LOW_STOCK: 'report:lowStock',
+  REPORT_INVENTORY_VALUATION: 'report:stockValuation',
+  REPORT_STOCK_MOVEMENTS: 'report:stockMovements',
+  REPORT_CUSTOMER_DUE: 'report:customerDue',
+  REPORT_CUSTOMER_STATEMENT: 'report:customerStatement',
+  REPORT_SUPPLIER_PAYABLE: 'report:supplierPayable',
+  REPORT_SUPPLIER_STATEMENT: 'report:supplierStatement',
+  REPORT_CASH: 'report:cash',
+  REPORT_BANK: 'report:bank',
+  REPORT_MFS: 'report:mfs',
+  REPORT_EXPENSE_SUMMARY: 'report:expenseSummary',
+  REPORT_EXPENSE_BY_CATEGORY: 'report:expenseByCategory',
+  REPORT_EXPENSE_LIST: 'report:expenseList',
+  REPORT_SHIFT: 'report:shift',
+  REPORT_PROFIT_LOSS: 'report:profitLoss',
+  REPORT_DASHBOARD: 'report:dashboard',
+
   // Logging
   LOG_GET_RECENT: 'log:getRecent',
 } as const;

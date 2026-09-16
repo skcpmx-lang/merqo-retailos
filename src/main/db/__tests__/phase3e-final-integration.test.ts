@@ -213,7 +213,7 @@ describe('Phase 3E — Final Integration + E2E Hardening', () => {
     expect(supplierPayable).toBe(110000);
 
     // Cash decreases 50000
-    let mainCashBal = financeService.getCashBalance(mainCash.id);
+    const mainCashBal = financeService.getCashBalance(mainCash.id);
     expect(mainCashBal).toBe(10000000 - 50000);
 
     // Supplier payment record exists
@@ -256,7 +256,7 @@ describe('Phase 3E — Final Integration + E2E Hardening', () => {
     expect(hasCartonDetail).toBe(true);
 
     // Duplicate scan increments quantity: simulate cart logic
-    let cart: any[] = [];
+    const cart: any[] = [];
     const addToCart = (prodId: string, unitId: string, qtyMilli: number) => {
       const existing = cart.find(c => c.productId === prodId && c.unitId === unitId);
       if (existing) {

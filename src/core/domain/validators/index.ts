@@ -270,6 +270,150 @@ export const ipcPayloadSchemas: Record<string, z.ZodSchema> = {
   'backup:getDetails': z.object({
     filePath: z.string().min(1).max(500),
   }),
+  // Reports P4.4
+  'report:salesSummary': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    customerId: z.string().min(10).max(64).optional(),
+    userId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
+  'report:salesByProduct': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    productId: z.string().min(10).max(64).optional(),
+    categoryId: z.string().min(10).max(64).optional(),
+    userId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
+  'report:salesByCategory': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:salesByCashier': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:salesByPayment': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:purchaseSummary': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    supplierId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
+  'report:purchaseBySupplier': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:purchaseByProduct': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    productId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
+  'report:inventoryStock': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    productId: z.string().min(10).max(64).optional(),
+    categoryId: z.string().min(10).max(64).optional(),
+    limit: z.number().int().min(1).max(10000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:lowStock': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    limit: z.number().int().min(1).max(10000).optional(),
+  }).passthrough(),
+  'report:stockValuation': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
+  'report:stockMovements': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    productId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    limit: z.number().int().min(1).max(1000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:customerDue': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    customerId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    limit: z.number().int().min(1).max(10000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:customerStatement': z.object({
+    customerId: z.string().min(10).max(64),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }),
+  'report:supplierPayable': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    supplierId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    limit: z.number().int().min(1).max(10000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:supplierStatement': z.object({
+    supplierId: z.string().min(10).max(64),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }),
+  'report:cash': z.object({
+    accountId: z.string().min(10).max(64),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }),
+  'report:bank': z.object({
+    accountId: z.string().min(10).max(64),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }),
+  'report:mfs': z.object({
+    accountId: z.string().min(10).max(64),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }),
+  'report:expenseSummary': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:expenseByCategory': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:expenseList': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    limit: z.number().int().min(1).max(1000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:shift': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+    userId: z.string().min(10).max(64).optional(),
+    limit: z.number().int().min(1).max(1000).optional(),
+    offset: z.number().int().min(0).optional(),
+  }).passthrough(),
+  'report:profitLoss': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+    fromDate: z.number().int().optional(),
+    toDate: z.number().int().optional(),
+  }).passthrough(),
+  'report:dashboard': z.object({
+    businessId: z.string().min(10).max(64).optional(),
+  }).passthrough(),
   'log:getRecent': z.object({}).passthrough(),
 } as const;
 

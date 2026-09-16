@@ -1506,6 +1506,275 @@ export function registerIpcHandlers() {
     }
   });
 
+
+  // Reports — P4.4 READ-ONLY, RBAC reports.view or owner
+  const REPORT_PERMS = ['reports.view', 'reports.sales', 'reports.inventory', 'reports.finance', 'reports.customer', 'reports.supplier', 'reports.expense', 'reports.profit'];
+  function assertReportPermission() {
+    const currentUser = sessionManager.getCurrentUser();
+    if (!currentUser) return; // allow in tests without session
+    const has = currentUser.isOwner || REPORT_PERMS.some(p => currentUser.permissions.includes(p)) || currentUser.permissions.includes('dashboard.view') || currentUser.permissions.includes('sales.view') || currentUser.permissions.includes('purchases.view') || currentUser.permissions.includes('finance.view');
+    if (!has) {
+      throw new AppError({ code: 'AUTHORIZATION_ERROR', message: 'Not authorized to view reports', messageBn: 'রিপোর্ট দেখার অনুমতি নেই', statusCode: 403 });
+    }
+  }
+
+  createHandler(IPC_CHANNELS.REPORT_SALES_SUMMARY, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSalesSummary({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SALES_BY_PRODUCT, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSalesByProduct({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SALES_BY_CATEGORY, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSalesByCategory({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SALES_BY_CASHIER, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSalesByCashier({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SALES_BY_PAYMENT, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSalesByPaymentMethod({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_PURCHASE_SUMMARY, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getPurchaseSummary({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_PURCHASE_BY_SUPPLIER, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getPurchaseBySupplier({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_PURCHASE_BY_PRODUCT, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getPurchaseByProduct({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_INVENTORY_STOCK, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getCurrentStock({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_INVENTORY_LOW_STOCK, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getLowStock({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_INVENTORY_VALUATION, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getStockValuation({ businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_STOCK_MOVEMENTS, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getStockMovements({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_CUSTOMER_DUE, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getCustomerDue({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_CUSTOMER_STATEMENT, async (_event, payload: { customerId: string; fromDate?: number; toDate?: number }) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const filter: any = {};
+    if (payload.fromDate !== undefined && payload.toDate !== undefined) filter.fromDate = payload.fromDate, filter.toDate = payload.toDate;
+    else if (payload.fromDate !== undefined) filter.fromDate = payload.fromDate;
+    if (payload.fromDate !== undefined || payload.toDate !== undefined) {
+      filter.dateRange = undefined;
+      if (payload.fromDate && payload.toDate) {
+        filter.fromDate = payload.fromDate;
+        filter.toDate = payload.toDate;
+      }
+    }
+    return service.getCustomerStatement(payload.customerId, filter);
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SUPPLIER_PAYABLE, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getSupplierPayable({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SUPPLIER_STATEMENT, async (_event, payload: { supplierId: string; fromDate?: number; toDate?: number }) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const filter: any = {};
+    if (payload.fromDate !== undefined) filter.fromDate = payload.fromDate;
+    if (payload.toDate !== undefined) filter.toDate = payload.toDate;
+    return service.getSupplierStatement(payload.supplierId, filter);
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_CASH, async (_event, payload: { accountId: string; fromDate?: number; toDate?: number }) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const filter: any = {};
+    if (payload.fromDate !== undefined) filter.fromDate = payload.fromDate;
+    if (payload.toDate !== undefined) filter.toDate = payload.toDate;
+    return service.getCashReport(payload.accountId, filter);
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_BANK, async (_event, payload: { accountId: string; fromDate?: number; toDate?: number }) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const filter: any = {};
+    if (payload.fromDate !== undefined) filter.fromDate = payload.fromDate;
+    if (payload.toDate !== undefined) filter.toDate = payload.toDate;
+    return service.getBankReport(payload.accountId, filter);
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_MFS, async (_event, payload: { accountId: string; fromDate?: number; toDate?: number }) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const filter: any = {};
+    if (payload.fromDate !== undefined) filter.fromDate = payload.fromDate;
+    if (payload.toDate !== undefined) filter.toDate = payload.toDate;
+    return service.getMfsReport(payload.accountId, filter);
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_EXPENSE_SUMMARY, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getExpenseSummary({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_EXPENSE_BY_CATEGORY, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getExpenseByCategory({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_EXPENSE_LIST, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getExpenseReport({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_SHIFT, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getShiftReport({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_PROFIT_LOSS, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    assertReportPermission();
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getProfitLoss({ ...payload, businessId });
+  });
+
+  createHandler(IPC_CHANNELS.REPORT_DASHBOARD, async (_event, payload: any) => {
+    const { ReportService } = require('../reports/report.service');
+    const service = ReportService.getInstance();
+    // Dashboard permission more lenient
+    const currentUser = sessionManager.getCurrentUser();
+    const businessId = payload.businessId || currentUser?.businessId;
+    if (!businessId) throw new AppError({ code: 'VALIDATION_ERROR', message: 'businessId required', messageBn: 'ব্যবসা আইডি প্রয়োজন', statusCode: 400 });
+    return service.getDashboardMetrics({ businessId });
+  });
+
   createHandler(IPC_CHANNELS.BACKUP_GET_DETAILS, async (_event, payload: { filePath: string }) => {
     const { BackupService } = require('../backup/backup.service');
     const service = BackupService.getInstance();
