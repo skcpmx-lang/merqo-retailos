@@ -5,5 +5,6 @@ export * from './unit.repository';
 export * from './product.repository';
 export * from './inventory.repository';
 export * from './supplier.repository';
+export * from './purchase.repository';
 export * from './customer.repository';
 export * from './finance.repository';

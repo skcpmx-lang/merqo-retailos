@@ -38,6 +38,34 @@ export const IPC_CHANNELS = {
   HARDWARE_TEST_PRINTER: 'hardware:testPrinter',
   HARDWARE_BARCODE_TEST: 'hardware:barcodeTest',
 
+  // Suppliers
+  SUPPLIER_CREATE: 'supplier:create',
+  SUPPLIER_UPDATE: 'supplier:update',
+  SUPPLIER_GET: 'supplier:get',
+  SUPPLIER_LIST: 'supplier:list',
+  SUPPLIER_SEARCH: 'supplier:search',
+  SUPPLIER_DEACTIVATE: 'supplier:deactivate',
+  SUPPLIER_DELETE: 'supplier:delete',
+  SUPPLIER_STATEMENT: 'supplier:statement',
+  SUPPLIER_TRANSACTIONS: 'supplier:transactions',
+  SUPPLIER_PAY: 'supplier:pay',
+
+  // Purchases
+  PURCHASE_CREATE: 'purchase:create',
+  PURCHASE_GET: 'purchase:get',
+  PURCHASE_LIST: 'purchase:list',
+  PURCHASE_CANCEL: 'purchase:cancel',
+  PURCHASE_RETURN_CREATE: 'purchase:returnCreate',
+  PURCHASE_RETURN_LIST: 'purchase:returnList',
+
+  // Products (for purchase form)
+  PRODUCT_SEARCH: 'product:search',
+  PRODUCT_GET: 'product:get',
+
+  // Units
+  UNIT_LIST: 'unit:list',
+  UNIT_CONVERSIONS: 'unit:conversions',
+
   // Backup (future)
   BACKUP_CREATE: 'backup:create',
   BACKUP_LIST: 'backup:list',

@@ -37,13 +37,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, activeKey
 
   const navItems: NavItem[] = [
     { key: 'dashboard', labelKey: 'dashboard', icon: <LayoutDashboard size={20} />, active: activeKey === 'dashboard' },
-    { key: 'pos', labelKey: 'pos', icon: <ShoppingCart size={20} />, disabled: true, comingSoon: true },
+    { key: 'purchases', labelKey: 'purchases', icon: <Truck size={20} />, active: activeKey === 'purchases' },
+    { key: 'suppliers', labelKey: 'suppliers', icon: <Truck size={20} />, active: activeKey === 'suppliers' },
     { key: 'products', labelKey: 'products', icon: <Package size={20} />, disabled: true, comingSoon: true },
     { key: 'inventory', labelKey: 'inventory', icon: <Database size={20} />, disabled: true, comingSoon: true },
-    { key: 'purchases', labelKey: 'purchases', icon: <Truck size={20} />, disabled: true, comingSoon: true },
+    { key: 'pos', labelKey: 'pos', icon: <ShoppingCart size={20} />, disabled: true, comingSoon: true },
     { key: 'sales', labelKey: 'sales', icon: <Store size={20} />, disabled: true, comingSoon: true },
     { key: 'customers', labelKey: 'customers', icon: <Users size={20} />, disabled: true, comingSoon: true },
-    { key: 'suppliers', labelKey: 'suppliers', icon: <Truck size={20} />, disabled: true, comingSoon: true },
     { key: 'expenses', labelKey: 'expenses', icon: <Wallet size={20} />, disabled: true, comingSoon: true },
     { key: 'reports', labelKey: 'reports', icon: <BarChart3 size={20} />, disabled: true, comingSoon: true },
     { key: 'hardware', labelKey: 'hardware', icon: <Printer size={20} />, disabled: true, comingSoon: true },

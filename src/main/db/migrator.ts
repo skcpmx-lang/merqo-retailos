@@ -249,15 +249,28 @@ export class Migrator {
 
     // Try to load Phase 2 migration file for full schema if exists
     let phase2Sql = '';
+    let phase3aSql = '';
     const possiblePaths = [
       path.join(__dirname, 'migrations', '0002_phase2_full_schema.sql'),
       path.join(process.cwd(), 'src/main/db/migrations/0002_phase2_full_schema.sql'),
+    ];
+    const possiblePaths3a = [
+      path.join(__dirname, 'migrations', '0003_phase3a_purchasing.sql'),
+      path.join(process.cwd(), 'src/main/db/migrations/0003_phase3a_purchasing.sql'),
     ];
 
     for (const p of possiblePaths) {
       if (fs.existsSync(p)) {
         phase2Sql = fs.readFileSync(p, 'utf-8');
         logger.info(`Loaded Phase 2 schema from ${p}`);
+        break;
+      }
+    }
+
+    for (const p of possiblePaths3a) {
+      if (fs.existsSync(p)) {
+        phase3aSql = fs.readFileSync(p, 'utf-8');
+        logger.info(`Loaded Phase 3A schema from ${p}`);
         break;
       }
     }
@@ -386,10 +399,13 @@ export class Migrator {
           id TEXT PRIMARY KEY,
           business_id TEXT NOT NULL REFERENCES businesses(id),
           name TEXT NOT NULL,
+          company_name TEXT,
           phone TEXT,
+          alternate_phone TEXT,
           email TEXT,
           address TEXT,
           contact_person TEXT,
+          notes TEXT,
           opening_payable_paisa INTEGER NOT NULL DEFAULT 0,
           current_payable_paisa INTEGER NOT NULL DEFAULT 0,
           is_active INTEGER NOT NULL DEFAULT 1,
@@ -476,11 +492,20 @@ export class Migrator {
       if (phase2Sql) {
         this.db.exec(phase2Sql);
       }
-      // Record that phase2 migration is applied for new DBs
+      if (phase3aSql) {
+        try {
+          this.db.exec(phase3aSql);
+        } catch (e) {
+          // ALTER TABLE may fail if columns already exist, log but continue
+          logger.warn(`Phase 3A migration partial: ${String(e)}`);
+        }
+      }
+      // Record that phase2 and phase3a migrations are applied for new DBs
       try {
         this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0002_phase2_full_schema', Date.now());
+        this.db.prepare('INSERT OR IGNORE INTO migrations (name, executed_at) VALUES (?, ?)').run('0003_phase3a_purchasing', Date.now());
       } catch {}
-      logger.info('Initial schema created (Phase 1 + Phase 2)');
+      logger.info('Initial schema created (Phase 1 + Phase 2 + Phase 3A)');
       return { success: true };
     } catch (e) {
       logger.error('Failed to create initial schema', e);

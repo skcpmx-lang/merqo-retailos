@@ -56,6 +56,42 @@ const merqoAPI = {
     getConfig: () => invoke('system:getConfig'),
   },
 
+  // Suppliers
+  supplier: {
+    create: (payload: any) => invoke('supplier:create', payload),
+    update: (payload: { id: string; data: any }) => invoke('supplier:update', payload),
+    get: (id: string) => invoke('supplier:get', { id }),
+    list: (businessId: string) => invoke('supplier:list', { businessId }),
+    search: (payload: { businessId: string; query: string; includeInactive?: boolean }) => invoke('supplier:search', payload),
+    deactivate: (id: string) => invoke('supplier:deactivate', { id }),
+    delete: (id: string) => invoke('supplier:delete', { id }),
+    statement: (payload: { supplierId: string; fromDate?: number; toDate?: number }) => invoke('supplier:statement', payload),
+    transactions: (payload: { supplierId: string; limit?: number }) => invoke('supplier:transactions', payload),
+    pay: (payload: any) => invoke('supplier:pay', payload),
+  },
+
+  // Purchases
+  purchase: {
+    create: (payload: any) => invoke('purchase:create', payload),
+    get: (id: string) => invoke('purchase:get', { id }),
+    list: (payload: { businessId: string; filters?: any; limit?: number; offset?: number }) => invoke('purchase:list', payload),
+    cancel: (payload: { id: string; reason: string }) => invoke('purchase:cancel', payload),
+    returnCreate: (payload: any) => invoke('purchase:returnCreate', payload),
+    returnList: (purchaseId: string) => invoke('purchase:returnList', { purchaseId }),
+  },
+
+  // Products
+  product: {
+    search: (payload: { businessId: string; query: string }) => invoke('product:search', payload),
+    get: (id: string) => invoke('product:get', { id }),
+  },
+
+  // Units
+  unit: {
+    list: (businessId: string) => invoke('unit:list', { businessId }),
+    conversions: (businessId: string) => invoke('unit:conversions', { businessId }),
+  },
+
   // Hardware (future, but expose now for diagnostics)
   hardware: {
     getPrinters: () => invoke('hardware:getPrinters'),
